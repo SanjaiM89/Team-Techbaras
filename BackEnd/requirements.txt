@@ -2,3 +2,8 @@ fastapi
 uvicorn
 opencv-python
 numpy
+av
+aiortc
+mediapipe
+python-multipart
+uvicorn[standard]
