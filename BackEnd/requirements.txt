@@ -11,3 +11,4 @@ jwt
 bcrypt
 email-validator
 motor
+pyjwt

@@ -1,6 +1,6 @@
 # Ignore Python virtual environment
 venv/
-
+myenv/
 # Ignore Node.js dependencies
 node_modules/
 

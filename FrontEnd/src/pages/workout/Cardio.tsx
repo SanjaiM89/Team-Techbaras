@@ -17,7 +17,7 @@ function CardioWorkout() {
       duration: 20,
       intensity: "High",
       xp: 200,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742712915/hiit_lu90lh.gif",
       intervals: [
         { type: "Sprint", duration: "30 sec" },
         { type: "Walk", duration: "30 sec" },
@@ -33,7 +33,7 @@ function CardioWorkout() {
       duration: 45,
       intensity: "Medium",
       xp: 250,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742713552/endurencerun_vjx5wi.gif",
       intervals: [
         { type: "Steady Pace", duration: "45 mins" }
       ],
@@ -47,7 +47,7 @@ function CardioWorkout() {
       duration: 30,
       intensity: "Very High",
       xp: 300,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742713559/hillsprints_ekup8p.gif",
       intervals: [
         { type: "Uphill Sprint", duration: "45 sec" },
         { type: "Recovery Walk", duration: "60 sec" },
@@ -127,14 +127,12 @@ function CardioWorkout() {
             ))}
           </div>
           <div className="flex space-x-4">
-            <button className="flex-1 bg-primary text-dark py-3 rounded-lg font-semibold flex items-center justify-center">
-              <TimerIcon className="mr-2" />
-              Start Timer
-            </button>
-            <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
-              <Play className="mr-2" />
-              Guide
-            </button>
+          <a href="https://youtu.be/vnBXaCsoEPU?si=bbkbhuvmaOeRZY2J" target="_blank" rel="noopener noreferrer">
+  <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
+    <Play className="mr-2" />
+    Guide
+  </button>
+</a>
           </div>
         </div>
 

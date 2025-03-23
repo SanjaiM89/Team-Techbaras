@@ -18,7 +18,7 @@ function PhysiotherapyWorkout() {
       focus: "Spine Health",
       intensity: "Low",
       xp: 100,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714959/lowerback_qfnhlt.gif",
       steps: [
         "Cat-Cow Stretches (2 mins)",
         "Pelvic Tilts (2 mins)",
@@ -37,7 +37,7 @@ function PhysiotherapyWorkout() {
       focus: "Joint Mobility",
       intensity: "Low",
       xp: 120,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714966/kneerehab_j79nso.gif",
       steps: [
         "Heel Slides (3 mins)",
         "Straight Leg Raises (3 mins)",
@@ -56,7 +56,7 @@ function PhysiotherapyWorkout() {
       focus: "Range of Motion",
       intensity: "Medium",
       xp: 110,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714972/shouldermobility_kuhcxo.gif",
       steps: [
         "Pendulum Swings (3 mins)",
         "Wall Slides (3 mins)",
@@ -75,7 +75,7 @@ function PhysiotherapyWorkout() {
       focus: "Cervical Spine",
       intensity: "Low",
       xp: 90,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714985/neckpain_bbclak.webp",
       steps: [
         "Chin Tucks (2 mins)",
         "Neck Rotations (2 mins)",
@@ -157,14 +157,12 @@ function PhysiotherapyWorkout() {
             ))}
           </div>
           <div className="flex space-x-4">
-            <button className="flex-1 bg-primary text-dark py-3 rounded-lg font-semibold flex items-center justify-center">
-              <TimerIcon className="mr-2" />
-              Start Session
-            </button>
-            <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
-              <Play className="mr-2" />
-              Guide
-            </button>
+          <a href="https://youtu.be/zME4tZ4s-UE?si=XQS70ouDJIGNYtR1" target="_blank" rel="noopener noreferrer">
+  <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
+    <Play className="mr-2" />
+    Guide
+  </button>
+</a>
           </div>
         </div>
 
