@@ -16,6 +16,7 @@ from thresholds import get_thresholds_beginner, get_thresholds_pro
 from onboarding import onboarding_router
 from auth_routes import auth_router
 from workout import workout_router
+from mealprep import router as mealprep_router  # Import the mealprep router
 
 app = FastAPI()
 
@@ -113,5 +114,7 @@ atexit.register(cleanup)
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(onboarding_router, prefix="/onboarding", tags=["Onboarding"])
 app.include_router(workout_router, prefix="/workouts", tags=["workouts"])
+app.include_router(mealprep_router, prefix="/api")  # Mealprep routes under /api
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

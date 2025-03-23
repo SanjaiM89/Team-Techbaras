@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Apple, Coffee, Pizza, MessageSquare, X, Trophy, Calendar, Edit2, Save, Plus, Check, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Apple, Coffee, Pizza, MessageSquare, X, Trophy, Calendar, Edit2, Save, Plus, Check, RefreshCw } from "lucide-react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 type Meal = {
   name: string;
@@ -30,6 +32,9 @@ function MealPrep() {
     protein: 150,
     restrictions: [] as string[],
   });
+  const [weeklyMeals, setWeeklyMeals] = useState<DayPlan[]>([]);
+  const [loading, setLoading] = useState(true); // Add loading state
+  const [error, setError] = useState<string | null>(null); // Add error state
 
   const [newMeal, setNewMeal] = useState<Meal>({
     name: '',
@@ -40,66 +45,146 @@ function MealPrep() {
     completed: false
   });
 
-  // Initial meal plans for the week
-  const [weeklyMeals, setWeeklyMeals] = useState<DayPlan[]>([
-    {
-      breakfast: [{ name: 'Protein Oatmeal', calories: 450, protein: 30, carbs: 60, fats: 12, completed: false }],
-      lunch: [{ name: 'Chicken Salad', calories: 550, protein: 40, carbs: 35, fats: 25, completed: false }],
-      dinner: [{ name: 'Salmon Bowl', calories: 600, protein: 45, carbs: 50, fats: 28, completed: false }]
-    },
-    // Initialize all 7 days with default meals
-    ...Array(6).fill({
-      breakfast: [{ name: 'Custom Breakfast', calories: 400, protein: 25, carbs: 45, fats: 15, completed: false }],
-      lunch: [{ name: 'Custom Lunch', calories: 500, protein: 35, carbs: 40, fats: 20, completed: false }],
-      dinner: [{ name: 'Custom Dinner', calories: 550, protein: 40, carbs: 45, fats: 22, completed: false }]
-    })
-  ]);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  const handleAddMeal = (e: React.FormEvent) => {
+  const api = axios.create({
+    baseURL: "http://localhost:8000/api", // Adjust based on your backend URL
+  });
+
+  // Fetch meal plans on mount
+  useEffect(() => {
+    const fetchMealPlans = async () => {
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await api.get("/mealplans", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("Fetched meal plans:", response.data); // Debug log
+        setWeeklyMeals(response.data || []); // Ensure it’s not undefined
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching meal plans:", error);
+        setError("Failed to load meal plans. Please try again.");
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMealPlans();
+  }, [token, navigate]);
+
+  const handleAddMeal = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedWeeklyMeals = [...weeklyMeals];
-    updatedWeeklyMeals[selectedDay][selectedMealType].push(newMeal);
-    setWeeklyMeals(updatedWeeklyMeals);
-    setShowAddMeal(false);
-    setNewMeal({
-      name: '',
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fats: 0,
-      completed: false
-    });
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await api.post(`/mealplans/${selectedDay}/${selectedMealType}`, newMeal, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const response = await api.get("/mealplans", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWeeklyMeals(response.data);
+      setShowAddMeal(false);
+      setNewMeal({
+        name: '',
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        completed: false
+      });
+    } catch (error) {
+      console.error("Error adding meal:", error);
+      setError("Failed to add meal.");
+    }
   };
 
-  const handleMealComplete = (dayIndex: number, meal: keyof DayPlan, mealIndex: number) => {
-    const newWeeklyMeals = [...weeklyMeals];
-    newWeeklyMeals[dayIndex][meal][mealIndex].completed = true;
-    setWeeklyMeals(newWeeklyMeals);
-    setShowCompletionModal(true);
-    setTimeout(() => setShowCompletionModal(false), 3000);
+  const handleMealComplete = async (dayIndex: number, meal: keyof DayPlan, mealIndex: number) => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const updatedMeal = { ...weeklyMeals[dayIndex][meal][mealIndex], completed: true };
+    try {
+      await api.put(`/mealplans/${dayIndex}/${meal}/${mealIndex}`, updatedMeal, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const response = await api.get("/mealplans", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWeeklyMeals(response.data);
+      setShowCompletionModal(true);
+      setTimeout(() => setShowCompletionModal(false), 3000);
+    } catch (error) {
+      console.error("Error updating meal:", error);
+      setError("Failed to complete meal.");
+    }
   };
 
   const handleMealEdit = (dayIndex: number, meal: keyof DayPlan, mealIndex: number) => {
     setEditingMeal({ day: dayIndex, meal });
   };
 
-  const handleMealUpdate = (dayIndex: number, meal: keyof DayPlan, mealIndex: number, updatedMeal: Meal) => {
-    const newWeeklyMeals = [...weeklyMeals];
-    newWeeklyMeals[dayIndex][meal][mealIndex] = updatedMeal;
-    setWeeklyMeals(newWeeklyMeals);
-    setEditingMeal(null);
+  const handleMealUpdate = async (dayIndex: number, meal: keyof DayPlan, mealIndex: number, updatedMeal: Meal) => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await api.put(`/mealplans/${dayIndex}/${meal}/${mealIndex}`, updatedMeal, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const response = await api.get("/mealplans", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWeeklyMeals(response.data);
+      setEditingMeal(null);
+    } catch (error) {
+      console.error("Error updating meal:", error);
+      setError("Failed to update meal.");
+    }
   };
 
-  const generateNewMealPlan = () => {
-    // In a real app, this would call an AI service to generate meals based on preferences
-    const newWeeklyMeals = weeklyMeals.map(day => ({
-      breakfast: day.breakfast.map(meal => ({ ...meal, completed: false })),
-      lunch: day.lunch.map(meal => ({ ...meal, completed: false })),
-      dinner: day.dinner.map(meal => ({ ...meal, completed: false }))
-    }));
-    setWeeklyMeals(newWeeklyMeals);
+  const generateNewMealPlan = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await api.post("/mealplans/generate", {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const response = await api.get("/mealplans", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWeeklyMeals(response.data);
+    } catch (error) {
+      console.error("Error generating meal plan:", error);
+      setError("Failed to generate meal plan.");
+    }
   };
 
   const MealCard = ({ meal, onComplete, onEdit, index }: { meal: Meal; onComplete: () => void; onEdit: () => void; index: number }) => (
@@ -151,6 +236,8 @@ function MealPrep() {
         <p className="text-gray-400">Your personalized nutrition guide</p>
       </header>
 
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Weekly Timeline</h2>
@@ -179,98 +266,104 @@ function MealPrep() {
           ))}
         </div>
 
-        <div className="bg-dark-light rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">{days[selectedDay]}'s Meals</h3>
-            <div className="flex items-center bg-dark-lighter px-3 py-1 rounded-lg">
-              <Trophy className="text-yellow-500 mr-2" size={18} />
-              <span className="text-sm">+50 XP per meal</span>
+        {loading ? (
+          <p className="text-gray-400">Loading meal plans...</p>
+        ) : weeklyMeals.length > 0 ? (
+          <div className="bg-dark-light rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">{days[selectedDay]}'s Meals</h3>
+              <div className="flex items-center bg-dark-lighter px-3 py-1 rounded-lg">
+                <Trophy className="text-yellow-500 mr-2" size={18} />
+                <span className="text-sm">+50 XP per meal</span>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <Coffee className="text-primary mr-2" size={20} />
+                    <h4 className="font-medium">Breakfast</h4>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedMealType('breakfast');
+                      setShowAddMeal(true);
+                    }}
+                    className="bg-dark-lighter p-2 rounded-full"
+                  >
+                    <Plus size={18} className="text-primary" />
+                  </button>
+                </div>
+                {weeklyMeals[selectedDay].breakfast.map((meal, index) => (
+                  <MealCard
+                    key={index}
+                    meal={meal}
+                    index={index}
+                    onComplete={() => handleMealComplete(selectedDay, 'breakfast', index)}
+                    onEdit={() => handleMealEdit(selectedDay, 'breakfast', index)}
+                  />
+                ))}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <Apple className="text-primary mr-2" size={20} />
+                    <h4 className="font-medium">Lunch</h4>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedMealType('lunch');
+                      setShowAddMeal(true);
+                    }}
+                    className="bg-dark-lighter p-2 rounded-full"
+                  >
+                    <Plus size={18} className="text-primary" />
+                  </button>
+                </div>
+                {weeklyMeals[selectedDay].lunch.map((meal, index) => (
+                  <MealCard
+                    key={index}
+                    meal={meal}
+                    index={index}
+                    onComplete={() => handleMealComplete(selectedDay, 'lunch', index)}
+                    onEdit={() => handleMealEdit(selectedDay, 'lunch', index)}
+                  />
+                ))}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <Pizza className="text-primary mr-2" size={20} />
+                    <h4 className="font-medium">Dinner</h4>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedMealType('dinner');
+                      setShowAddMeal(true);
+                    }}
+                    className="bg-dark-lighter p-2 rounded-full"
+                  >
+                    <Plus size={18} className="text-primary" />
+                  </button>
+                </div>
+                {weeklyMeals[selectedDay].dinner.map((meal, index) => (
+                  <MealCard
+                    key={index}
+                    meal={meal}
+                    index={index}
+                    onComplete={() => handleMealComplete(selectedDay, 'dinner', index)}
+                    onEdit={() => handleMealEdit(selectedDay, 'dinner', index)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <Coffee className="text-primary mr-2" size={20} />
-                  <h4 className="font-medium">Breakfast</h4>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedMealType('breakfast');
-                    setShowAddMeal(true);
-                  }}
-                  className="bg-dark-lighter p-2 rounded-full"
-                >
-                  <Plus size={18} className="text-primary" />
-                </button>
-              </div>
-              {weeklyMeals[selectedDay].breakfast.map((meal, index) => (
-                <MealCard
-                  key={index}
-                  meal={meal}
-                  index={index}
-                  onComplete={() => handleMealComplete(selectedDay, 'breakfast', index)}
-                  onEdit={() => handleMealEdit(selectedDay, 'breakfast', index)}
-                />
-              ))}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <Apple className="text-primary mr-2" size={20} />
-                  <h4 className="font-medium">Lunch</h4>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedMealType('lunch');
-                    setShowAddMeal(true);
-                  }}
-                  className="bg-dark-lighter p-2 rounded-full"
-                >
-                  <Plus size={18} className="text-primary" />
-                </button>
-              </div>
-              {weeklyMeals[selectedDay].lunch.map((meal, index) => (
-                <MealCard
-                  key={index}
-                  meal={meal}
-                  index={index}
-                  onComplete={() => handleMealComplete(selectedDay, 'lunch', index)}
-                  onEdit={() => handleMealEdit(selectedDay, 'lunch', index)}
-                />
-              ))}
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <Pizza className="text-primary mr-2" size={20} />
-                  <h4 className="font-medium">Dinner</h4>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedMealType('dinner');
-                    setShowAddMeal(true);
-                  }}
-                  className="bg-dark-lighter p-2 rounded-full"
-                >
-                  <Plus size={18} className="text-primary" />
-                </button>
-              </div>
-              {weeklyMeals[selectedDay].dinner.map((meal, index) => (
-                <MealCard
-                  key={index}
-                  meal={meal}
-                  index={index}
-                  onComplete={() => handleMealComplete(selectedDay, 'dinner', index)}
-                  onEdit={() => handleMealEdit(selectedDay, 'dinner', index)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p className="text-gray-400">No meal plans available.</p>
+        )}
       </section>
 
       <section>
@@ -288,12 +381,16 @@ function MealPrep() {
             <div>
               <p className="text-gray-400 text-sm">Meals Completed</p>
               <p className="text-xl font-bold text-green-500">
-                {weeklyMeals[selectedDay].breakfast.filter(m => m.completed).length +
-                  weeklyMeals[selectedDay].lunch.filter(m => m.completed).length +
-                  weeklyMeals[selectedDay].dinner.filter(m => m.completed).length}/
-                {weeklyMeals[selectedDay].breakfast.length +
-                  weeklyMeals[selectedDay].lunch.length +
-                  weeklyMeals[selectedDay].dinner.length}
+                {weeklyMeals.length > 0
+                  ? weeklyMeals[selectedDay].breakfast.filter(m => m.completed).length +
+                    weeklyMeals[selectedDay].lunch.filter(m => m.completed).length +
+                    weeklyMeals[selectedDay].dinner.filter(m => m.completed).length
+                  : 0}/
+                {weeklyMeals.length > 0
+                  ? weeklyMeals[selectedDay].breakfast.length +
+                    weeklyMeals[selectedDay].lunch.length +
+                    weeklyMeals[selectedDay].dinner.length
+                  : 0}
               </p>
             </div>
           </div>
@@ -335,7 +432,7 @@ function MealPrep() {
                     <input
                       type="number"
                       value={newMeal.calories}
-                      onChange={(e) => setNewMeal({ ...newMeal, calories: parseInt(e.target.value) })}
+                      onChange={(e) => setNewMeal({ ...newMeal, calories: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       required
                     />
@@ -345,7 +442,7 @@ function MealPrep() {
                     <input
                       type="number"
                       value={newMeal.protein}
-                      onChange={(e) => setNewMeal({ ...newMeal, protein: parseInt(e.target.value) })}
+                      onChange={(e) => setNewMeal({ ...newMeal, protein: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       required
                     />
@@ -355,7 +452,7 @@ function MealPrep() {
                     <input
                       type="number"
                       value={newMeal.carbs}
-                      onChange={(e) => setNewMeal({ ...newMeal, carbs: parseInt(e.target.value) })}
+                      onChange={(e) => setNewMeal({ ...newMeal, carbs: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       required
                     />
@@ -365,7 +462,7 @@ function MealPrep() {
                     <input
                       type="number"
                       value={newMeal.fats}
-                      onChange={(e) => setNewMeal({ ...newMeal, fats: parseInt(e.target.value) })}
+                      onChange={(e) => setNewMeal({ ...newMeal, fats: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       required
                     />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save } from "lucide-react";
+import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save, RefreshCw } from "lucide-react"; // Added RefreshCw
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -96,7 +96,7 @@ function Workout() {
         const response = await api.get("/workouts", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setCustomWorkouts(response.data); // Backend returns _id and user_id as strings
+        setCustomWorkouts(response.data);
         setError(null);
       } catch (error) {
         console.error("Error fetching workouts:", error);
@@ -186,6 +186,13 @@ function Workout() {
     setSelectedWorkoutIndex(null);
   };
 
+  // Handler for Generate Workout button
+  const handleGenerateWorkout = () => {
+    // Placeholder for generating a new workout
+    console.log("Generate Workout clicked!");
+    // You can add logic here to generate a new workout, e.g., fetch from an API
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -199,12 +206,21 @@ function Workout() {
             <h1 className="text-2xl font-bold mb-2">Workouts</h1>
             <p className="text-gray-400">Choose your training focus</p>
           </div>
-          <button
-            onClick={() => setShowAddWorkout(true)}
-            className="bg-primary text-dark p-3 rounded-full"
-          >
-            <Plus size={24} />
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleGenerateWorkout}
+              className="bg-cyan-500 text-white font-semibold px-4 py-2 rounded-lg flex items-center"
+            >
+              <RefreshCw className="mr-2" size={16} />
+              Generate Workout
+            </button>
+            <button
+              onClick={() => setShowAddWorkout(true)}
+              className="bg-primary text-dark p-3 rounded-full"
+            >
+              <Plus size={24} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -234,7 +250,7 @@ function Workout() {
             <p className="text-gray-400 mb-4">Improve endurance and heart health</p>
             <div className="flex justify-between items-center">
               <span className="text-primary">+250 XP per session</span>
-              < ChevronRight className="text-gray-400" />
+              <ChevronRight className="text-gray-400" />
             </div>
           </div>
         </Link>
