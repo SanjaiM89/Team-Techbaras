@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 type Exercise = {
   name: string;
@@ -14,40 +16,54 @@ type Exercise = {
   xp: number;
 };
 
-type CustomWorkout = {
-  name: string;
+type Workout = {
+  _id: string;
+  title: string;
   type: string;
   duration: number;
   intensity: string;
   description: string;
   xp: number;
   exercises: Exercise[];
+  user_id: string;
+};
+
+type JwtPayload = {
+  user_id: string;
+  exp: number;
 };
 
 function Workout() {
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
-  const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
+  const [customWorkouts, setCustomWorkouts] = useState<Workout[]>([]);
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number | null>(null);
   const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [newWorkout, setNewWorkout] = useState<CustomWorkout>({
-    name: '',
-    type: 'strength',
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const userId = token ? jwtDecode<JwtPayload>(token).user_id : null;
+
+  const [newWorkout, setNewWorkout] = useState<Workout>({
+    _id: "",
+    title: "",
+    type: "strength",
     duration: 30,
-    intensity: 'Medium',
-    description: '',
+    intensity: "Medium",
+    description: "",
     xp: 200,
-    exercises: []
+    exercises: [],
+    user_id: userId || "",
   });
 
   const getDefaultXP = (type: string): number => {
     switch (type) {
-      case 'strength':
+      case "strength":
         return 50;
-      case 'cardio':
+      case "cardio":
         return 40;
-      case 'recovery':
+      case "recovery":
         return 30;
       default:
         return 30;
@@ -55,45 +71,113 @@ function Workout() {
   };
 
   const [newExercise, setNewExercise] = useState<Exercise>({
-    name: '',
+    name: "",
     sets: 3,
-    reps: '10-12',
+    reps: "10-12",
     weight: 0,
     duration: 0,
-    description: '',
+    description: "",
     restTime: 60,
-    xp: getDefaultXP('strength')
+    xp: getDefaultXP("strength"),
   });
 
-  const handleAddWorkout = (e: React.FormEvent) => {
+  const api = axios.create({
+    baseURL: "http://localhost:8000/workouts",
+  });
+
+  useEffect(() => {
+    const fetchWorkouts = async () => {
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await api.get("/workouts", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCustomWorkouts(response.data); // Backend returns _id and user_id as strings
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching workouts:", error);
+        setError("Failed to load workouts. Please try again.");
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
+      }
+    };
+
+    fetchWorkouts();
+  }, [token, navigate]);
+
+  const handleAddWorkout = async (e: React.FormEvent) => {
     e.preventDefault();
-    const workoutIndex = customWorkouts.length;
-    setCustomWorkouts([...customWorkouts, newWorkout]);
-    setShowAddWorkout(false);
-    setSelectedWorkoutIndex(workoutIndex);
-    setShowAddExercise(true);
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await api.post("/workouts", newWorkout, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const workoutIndex = customWorkouts.length;
+      setCustomWorkouts([...customWorkouts, { ...newWorkout, _id: response.data.workout_id }]);
+      setShowAddWorkout(false);
+      setSelectedWorkoutIndex(workoutIndex);
+      setShowAddExercise(true);
+      setNewWorkout({
+        _id: "",
+        title: "",
+        type: "strength",
+        duration: 30,
+        intensity: "Medium",
+        description: "",
+        xp: 200,
+        exercises: [],
+        user_id: userId || "",
+      });
+      setError(null);
+    } catch (error) {
+      console.error("Error adding workout:", error);
+      setError("Failed to add workout. Please try again.");
+    }
   };
 
-  const handleAddExercise = (e: React.FormEvent) => {
+  const handleAddExercise = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedWorkoutIndex !== null) {
-      const updatedWorkouts = [...customWorkouts];
-      const exerciseWithXP = {
-        ...newExercise,
-        xp: getDefaultXP(customWorkouts[selectedWorkoutIndex].type)
-      };
-      updatedWorkouts[selectedWorkoutIndex].exercises.push(exerciseWithXP);
+    if (selectedWorkoutIndex === null || !token) {
+      if (!token) navigate("/login");
+      return;
+    }
+
+    const updatedWorkouts = [...customWorkouts];
+    const exerciseWithXP = {
+      ...newExercise,
+      xp: getDefaultXP(updatedWorkouts[selectedWorkoutIndex].type),
+    };
+    updatedWorkouts[selectedWorkoutIndex].exercises.push(exerciseWithXP);
+
+    try {
+      await api.put(`/workouts/${updatedWorkouts[selectedWorkoutIndex]._id}`, updatedWorkouts[selectedWorkoutIndex], {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setCustomWorkouts(updatedWorkouts);
       setNewExercise({
-        name: '',
+        name: "",
         sets: 3,
-        reps: '10-12',
+        reps: "10-12",
         weight: 0,
         duration: 0,
-        description: '',
+        description: "",
         restTime: 60,
-        xp: getDefaultXP('strength')
+        xp: getDefaultXP("strength"),
       });
+      setError(null);
+    } catch (error) {
+      console.error("Error adding exercise:", error);
+      setError("Failed to add exercise. Please try again.");
     }
   };
 
@@ -124,6 +208,8 @@ function Workout() {
         </div>
       </header>
 
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
       <div className="space-y-4">
         <Link to="/workout/strength" className="block">
           <div className="bg-dark-light rounded-xl p-6">
@@ -148,7 +234,7 @@ function Workout() {
             <p className="text-gray-400 mb-4">Improve endurance and heart health</p>
             <div className="flex justify-between items-center">
               <span className="text-primary">+250 XP per session</span>
-              <ChevronRight className="text-gray-400" />
+              < ChevronRight className="text-gray-400" />
             </div>
           </div>
         </Link>
@@ -182,8 +268,8 @@ function Workout() {
         </Link>
 
         {customWorkouts.map((workout, index) => (
-          <div key={index} className="block">
-            <div 
+          <div key={workout._id} className="block">
+            <div
               className="bg-dark-light rounded-xl p-6 cursor-pointer"
               onClick={() => {
                 setSelectedWorkoutIndex(index);
@@ -191,10 +277,10 @@ function Workout() {
               }}
             >
               <div className="flex items-center mb-4">
-                {workout.type === 'strength' && <Dumbbell className="text-primary mr-3" size={24} />}
-                {workout.type === 'cardio' && <Heart className="text-red-500 mr-3" size={24} />}
-                {workout.type === 'recovery' && <Brain className="text-purple-500 mr-3" size={24} />}
-                <h2 className="text-xl font-semibold">{workout.name}</h2>
+                {workout.type === "strength" && <Dumbbell className="text-primary mr-3" size={24} />}
+                {workout.type === "cardio" && <Heart className="text-red-500 mr-3" size={24} />}
+                {workout.type === "recovery" && <Brain className="text-purple-500 mr-3" size={24} />}
+                <h2 className="text-xl font-semibold">{workout.title}</h2>
               </div>
               <p className="text-gray-400 mb-4">{workout.description}</p>
               <div className="flex justify-between items-center">
@@ -229,11 +315,11 @@ function Workout() {
 
               <form onSubmit={handleAddWorkout} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Workout Name</label>
+                  <label className="block text-sm font-medium mb-2">Workout Title</label>
                   <input
                     type="text"
-                    value={newWorkout.name}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, name: e.target.value })}
+                    value={newWorkout.title}
+                    onChange={(e) => setNewWorkout({ ...newWorkout, title: e.target.value })}
                     className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                     required
                   />
@@ -257,7 +343,7 @@ function Workout() {
                   <input
                     type="number"
                     value={newWorkout.duration}
-                    onChange={(e) => setNewWorkout({ ...newWorkout, duration: parseInt(e.target.value) })}
+                    onChange={(e) => setNewWorkout({ ...newWorkout, duration: parseInt(e.target.value) || 0 })}
                     className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                     min="5"
                     max="120"
@@ -342,7 +428,7 @@ function Workout() {
                     <input
                       type="number"
                       value={newExercise.sets}
-                      onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) })}
+                      onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       min="1"
                       required
@@ -367,7 +453,7 @@ function Workout() {
                     <input
                       type="number"
                       value={newExercise.weight}
-                      onChange={(e) => setNewExercise({ ...newExercise, weight: parseInt(e.target.value) })}
+                      onChange={(e) => setNewExercise({ ...newExercise, weight: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       min="0"
                       required
@@ -378,7 +464,7 @@ function Workout() {
                     <input
                       type="number"
                       value={newExercise.duration}
-                      onChange={(e) => setNewExercise({ ...newExercise, duration: parseInt(e.target.value) })}
+                      onChange={(e) => setNewExercise({ ...newExercise, duration: parseInt(e.target.value) || 0 })}
                       className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                       min="0"
                       required
@@ -391,7 +477,7 @@ function Workout() {
                   <input
                     type="number"
                     value={newExercise.restTime}
-                    onChange={(e) => setNewExercise({ ...newExercise, restTime: parseInt(e.target.value) })}
+                    onChange={(e) => setNewExercise({ ...newExercise, restTime: parseInt(e.target.value) || 0 })}
                     className="w-full bg-dark-lighter rounded-lg px-4 py-2 text-white"
                     min="0"
                     required
@@ -443,7 +529,7 @@ function Workout() {
           >
             <div className="bg-dark-light rounded-xl w-full max-w-md p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">{customWorkouts[selectedWorkoutIndex].name}</h2>
+                <h2 className="text-xl font-bold">{customWorkouts[selectedWorkoutIndex].title}</h2>
                 <button onClick={() => setShowWorkoutDetails(false)}>
                   <X className="text-gray-400" />
                 </button>
