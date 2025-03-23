@@ -8,11 +8,30 @@ function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement signup logic
-    navigate('/onboarding/user-details');
+    setError(null); // Clear previous errors
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Token received:", data.access_token); // Debugging
+        localStorage.setItem('token', data.access_token);
+        navigate('/onboarding');
+      } else {
+        setError(data.detail || 'Signup failed');
+      }
+    } catch (err) {
+      setError('Server error. Try again later.');
+    }
   };
 
   return (
@@ -23,11 +42,7 @@ function Signup() {
       className="min-h-screen bg-dark flex items-center justify-center p-6"
     >
       <div className="w-full max-w-md">
-        <motion.div
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          className="bg-dark-light rounded-xl p-8 shadow-xl"
-        >
+        <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="bg-dark-light rounded-xl p-8 shadow-xl">
           <div className="flex justify-center mb-8">
             <div className="bg-dark-lighter p-4 rounded-full">
               <UserPlus className="w-8 h-8 text-primary" />
@@ -36,6 +51,8 @@ function Signup() {
 
           <h1 className="text-2xl font-bold text-center mb-2">Create Account</h1>
           <p className="text-gray-400 text-center mb-8">Start your fitness journey today</p>
+
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

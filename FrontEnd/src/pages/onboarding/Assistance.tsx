@@ -1,15 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Feather, Shield, Zap } from 'lucide-react';
-import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Feather, Shield, Zap } from "lucide-react";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 
 export default function Assistance() {
   const navigate = useNavigate();
-  const [assistance, setAssistance] = useState('');
+  const [assistance, setAssistance] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/onboarding/schedule');
+    setLoading(true);
+    setError("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/onboarding/save-assistance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ assistance }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to save assistance level");
+      }
+
+      navigate("/onboarding/schedule");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -19,52 +51,34 @@ export default function Assistance() {
         <p className="text-gray-400 mb-8">How much guidance do you need?</p>
 
         <div className="space-y-4">
-          <button
-            onClick={() => setAssistance('light')}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === 'light' ? 'bg-primary text-dark' : 'bg-dark-lighter'
-            }`}
-          >
-            <Feather size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Light Assistance</h3>
-              <p className="text-sm opacity-80">Basic guidance and form checks</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setAssistance('moderate')}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === 'moderate' ? 'bg-primary text-dark' : 'bg-dark-lighter'
-            }`}
-          >
-            <Shield size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Moderate Assistance</h3>
-              <p className="text-sm opacity-80">Regular check-ins and detailed form guidance</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setAssistance('heavy')}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === 'heavy' ? 'bg-primary text-dark' : 'bg-dark-lighter'
-            }`}
-          >
-            <Zap size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Heavy Assistance</h3>
-              <p className="text-sm opacity-80">Step-by-step guidance and constant support</p>
-            </div>
-          </button>
+          {[
+            { level: "light", icon: <Feather size={24} />, title: "Light Assistance", desc: "Basic guidance and form checks" },
+            { level: "moderate", icon: <Shield size={24} />, title: "Moderate Assistance", desc: "Regular check-ins and detailed form guidance" },
+            { level: "heavy", icon: <Zap size={24} />, title: "Heavy Assistance", desc: "Step-by-step guidance and constant support" },
+          ].map(({ level, icon, title, desc }) => (
+            <button
+              key={level}
+              onClick={() => setAssistance(level)}
+              className={`w-full p-6 rounded-xl flex items-center ${assistance === level ? "bg-primary text-dark" : "bg-dark-lighter"}`}
+            >
+              {icon}
+              <div className="text-left ml-4">
+                <h3 className="font-semibold">{title}</h3>
+                <p className="text-sm opacity-80">{desc}</p>
+              </div>
+            </button>
+          ))}
         </div>
+
+        {error && <p className="text-red-500 mt-4">{error}</p>}
 
         {assistance && (
           <button
             onClick={handleSubmit}
             className="w-full bg-primary hover:bg-primary-dark text-dark font-semibold py-4 rounded-xl transition-colors mt-8"
+            disabled={loading}
           >
-            Continue
+            {loading ? "Saving..." : "Continue"}
           </button>
         )}
       </div>
