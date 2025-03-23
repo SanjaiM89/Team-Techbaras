@@ -12,18 +12,18 @@ function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+  
     try {
       const response = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
+  
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('token', data.access_token);
-        navigate('/');
+        navigate('/dashboard'); // Redirect to Dashboard.tsx
       } else {
         setError(data.detail || 'Login failed');
       }

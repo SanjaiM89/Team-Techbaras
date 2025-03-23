@@ -1,21 +1,50 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar } from 'lucide-react';
+import { User, Calendar } from 'lucide-react';
 import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
 
 export default function UserDetails() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
-    email: '',
     dateOfBirth: '',
     gender: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Save user details
-    navigate('/onboarding/fitness-profile');
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication error. Please log in again.");
+        return;
+      }
+
+      const response = await fetch("http://localhost:8000/onboarding/save-user-details", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        setError(responseData.detail || "Failed to save user details");
+        return;
+      }
+
+      // Navigate to the next step
+      navigate("/onboarding/fitness-profile");
+    } catch (error) {
+      setError("An error occurred. Please try again later.");
+    }
   };
 
   return (
@@ -23,6 +52,8 @@ export default function UserDetails() {
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-2">Tell us about yourself</h1>
         <p className="text-gray-400 mb-8">Help us personalize your experience</p>
+
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -32,24 +63,9 @@ export default function UserDetails() {
               <input
                 type="text"
                 value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
                 className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Enter your full name"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter your email"
                 required
               />
             </div>
@@ -62,7 +78,7 @@ export default function UserDetails() {
               <input
                 type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
                 className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
@@ -76,7 +92,7 @@ export default function UserDetails() {
                 <button
                   key={gender}
                   type="button"
-                  onClick={() => setFormData({ ...formData, gender })}
+                  onClick={() => setFormData((prev) => ({ ...prev, gender }))}
                   className={`p-3 rounded-xl ${
                     formData.gender === gender ? 'bg-primary text-dark' : 'bg-dark-lighter text-white'
                   }`}

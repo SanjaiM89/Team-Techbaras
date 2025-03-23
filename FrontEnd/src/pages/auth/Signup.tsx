@@ -23,6 +23,7 @@ function Signup() {
 
       const data = await response.json();
       if (response.ok) {
+        console.log("Token received:", data.access_token); // Debugging
         localStorage.setItem('token', data.access_token);
         navigate('/onboarding');
       } else {
@@ -41,11 +42,7 @@ function Signup() {
       className="min-h-screen bg-dark flex items-center justify-center p-6"
     >
       <div className="w-full max-w-md">
-        <motion.div
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          className="bg-dark-light rounded-xl p-8 shadow-xl"
-        >
+        <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="bg-dark-light rounded-xl p-8 shadow-xl">
           <div className="flex justify-center mb-8">
             <div className="bg-dark-lighter p-4 rounded-full">
               <UserPlus className="w-8 h-8 text-primary" />

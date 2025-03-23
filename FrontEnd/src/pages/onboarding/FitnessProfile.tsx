@@ -1,15 +1,41 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Home, Building2, Dumbbell } from 'lucide-react';
-import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Home, Building2, Dumbbell } from "lucide-react";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 
 export default function FitnessProfile() {
   const navigate = useNavigate();
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/onboarding/body-metrics');
+
+    const token = localStorage.getItem("token"); // Get JWT token
+
+    if (!token) {
+      console.error("No token found");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/onboarding/save-fitness-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ location }),
+      });
+
+      if (response.ok) {
+        navigate("/onboarding/body-metrics"); // Move to next step
+      } else {
+        const errorData = await response.json();
+        console.error("Error:", errorData.detail);
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    }
   };
 
   return (
@@ -20,9 +46,9 @@ export default function FitnessProfile() {
 
         <div className="space-y-4">
           <button
-            onClick={() => setLocation('home')}
+            onClick={() => setLocation("home")}
             className={`w-full p-6 rounded-xl flex items-center ${
-              location === 'home' ? 'bg-primary text-dark' : 'bg-dark-lighter'
+              location === "home" ? "bg-primary text-dark" : "bg-dark-lighter"
             }`}
           >
             <Home size={24} className="mr-4" />
@@ -33,9 +59,9 @@ export default function FitnessProfile() {
           </button>
 
           <button
-            onClick={() => setLocation('gym')}
+            onClick={() => setLocation("gym")}
             className={`w-full p-6 rounded-xl flex items-center ${
-              location === 'gym' ? 'bg-primary text-dark' : 'bg-dark-lighter'
+              location === "gym" ? "bg-primary text-dark" : "bg-dark-lighter"
             }`}
           >
             <Building2 size={24} className="mr-4" />
@@ -46,9 +72,9 @@ export default function FitnessProfile() {
           </button>
 
           <button
-            onClick={() => setLocation('both')}
+            onClick={() => setLocation("both")}
             className={`w-full p-6 rounded-xl flex items-center ${
-              location === 'both' ? 'bg-primary text-dark' : 'bg-dark-lighter'
+              location === "both" ? "bg-primary text-dark" : "bg-dark-lighter"
             }`}
           >
             <Dumbbell size={24} className="mr-4" />

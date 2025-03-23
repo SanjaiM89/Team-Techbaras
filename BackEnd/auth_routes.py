@@ -55,7 +55,7 @@ async def signup(user: UserCreate):
     result = await users_collection.insert_one(new_user)
     token = create_jwt(str(result.inserted_id))
     
-    return {"message": "User registered successfully", "token": token}
+    return {"message": "User registered successfully", "access_token": token}
 
 # User Login
 @auth_router.post("/login")  # ✅ Changed 'router' to 'auth_router'
@@ -65,4 +65,4 @@ async def login(user: UserLogin):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     token = create_jwt(str(db_user["_id"]))
-    return {"message": "Login successful", "token": token}
+    return {"message": "Login successful", "access_token": token}
