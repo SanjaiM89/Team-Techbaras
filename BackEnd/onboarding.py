@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from bson import ObjectId  # Import this at the top
+from typing import List
 
 load_dotenv()
 
@@ -41,6 +42,13 @@ class ExperienceData(BaseModel):
 class AssistanceData(BaseModel):
     assistance: str  # "light", "moderate", or "heavy"
     
+# Pydantic Model for Schedule
+class ScheduleData(BaseModel):
+    daysPerWeek: int
+    timePerSession: str
+    
+class GoalsData(BaseModel):
+    goals: List[str] 
 
 # Helper function to decode JWT token
 def decode_jwt(token: str):
@@ -132,10 +140,10 @@ async def save_body_metrics(
         else:
             data.bmi = round((data.weight * 703) / (data.height * data.height), 1)
 
-    # Update user's body metrics in MongoDB
+    # Update user's body metrics inside "onboarding"
     result = await users_collection.update_one(
         {"_id": user["_id"]},
-        {"$set": {"bodyMetrics": data.dict()}}
+        {"$set": {"onboarding.bodyMetrics": data.dict()}}  # ✅ Store inside onboarding
     )
 
     if result.modified_count == 1:
@@ -143,15 +151,17 @@ async def save_body_metrics(
     else:
         raise HTTPException(status_code=404, detail="User not found")
 
+
 # Get Body Metrics
 @onboarding_router.get("/get-body-metrics")
 async def get_body_metrics(
     user: dict = Depends(get_current_user)  # Ensure the user is authenticated
 ):
-    if "bodyMetrics" in user:
-        return user["bodyMetrics"]
+    if "onboarding" in user and "bodyMetrics" in user["onboarding"]:
+        return user["onboarding"]["bodyMetrics"]
     else:
         raise HTTPException(status_code=404, detail="Body metrics not found")
+
     
 # Save Experience Level
 @onboarding_router.post("/save-experience")
@@ -196,3 +206,53 @@ async def get_assistance(user: dict = Depends(get_current_user)):
         return {"assistance": user["onboarding"]["assistance"]}
     else:
         raise HTTPException(status_code=404, detail="Assistance level not found")
+    
+# Save Schedule
+@onboarding_router.post("/save-schedule")
+async def save_schedule(
+    data: ScheduleData,
+    user: dict = Depends(get_current_user)
+):
+    # Store under "onboarding.schedule"
+    result = await users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"onboarding.schedule": data.dict()}}
+    )
+
+    if result.modified_count == 1:
+        return {"message": "Schedule saved successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
+
+
+# Get Schedule
+@onboarding_router.get("/get-schedule")
+async def get_schedule(user: dict = Depends(get_current_user)):
+    if "onboarding" in user and "schedule" in user["onboarding"]:
+        return user["onboarding"]["schedule"]
+    else:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+# Save Fitness Goals (Fixed with upsert)
+@onboarding_router.post("/save-goals")
+async def save_goals(
+    data: GoalsData,
+    user: dict = Depends(get_current_user)
+):
+    result = await users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"onboarding.goals": data.goals}},
+        upsert=True  # ✅ Ensure insertion if the user doesn't have goals yet
+    )
+
+    return {"message": "Goals saved successfully"}
+
+
+# Get Fitness Goals
+@onboarding_router.get("/get-goals")
+async def get_goals(user: dict = Depends(get_current_user)):
+    if "onboarding" in user and "goals" in user["onboarding"]:
+        return {"goals": user["onboarding"]["goals"]}
+    else:
+        raise HTTPException(status_code=404, detail="Goals not found")
+    

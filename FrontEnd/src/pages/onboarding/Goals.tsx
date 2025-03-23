@@ -1,50 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Scale, Heart, Dumbbell, Brain } from 'lucide-react';
+import axios from 'axios';
 import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
 
 export default function Goals() {
   const navigate = useNavigate();
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const goals = [
-    {
-      id: 'weight-loss',
-      icon: Scale,
-      title: 'Weight Loss',
-      description: 'Burn fat and get lean'
-    },
-    {
-      id: 'muscle-gain',
-      icon: Dumbbell,
-      title: 'Build Muscle',
-      description: 'Gain strength and size'
-    },
-    {
-      id: 'endurance',
-      icon: Heart,
-      title: 'Improve Endurance',
-      description: 'Better stamina and health'
-    },
-    {
-      id: 'flexibility',
-      icon: Brain,
-      title: 'Increase Flexibility',
-      description: 'Better mobility and balance'
-    }
+    { id: 'weight-loss', icon: Scale, title: 'Weight Loss', description: 'Burn fat and get lean' },
+    { id: 'muscle-gain', icon: Dumbbell, title: 'Build Muscle', description: 'Gain strength and size' },
+    { id: 'endurance', icon: Heart, title: 'Improve Endurance', description: 'Better stamina and health' },
+    { id: 'flexibility', icon: Brain, title: 'Increase Flexibility', description: 'Better mobility and balance' }
   ];
 
+  // Fetch saved goals from FastAPI
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:8000/onboarding/get-goals", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSelectedGoals(response.data.goals);
+      } catch (err) {
+        setError("Failed to load goals.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGoals();
+  }, []);
+
+  // Toggle goal selection
   const toggleGoal = (goalId: string) => {
     setSelectedGoals(prev =>
-      prev.includes(goalId)
-        ? prev.filter(id => id !== goalId)
-        : [...prev, goalId]
+      prev.includes(goalId) ? prev.filter(id => id !== goalId) : [...prev, goalId]
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Save selected goals to FastAPI
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/onboarding/photo');
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      await axios.post("http://localhost:8000/onboarding/save-goals", 
+        { goals: selectedGoals }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      navigate('/onboarding/photo');
+    } catch (err) {
+      setError("Failed to save goals.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,6 +67,8 @@ export default function Goals() {
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-2">Your Fitness Goals</h1>
         <p className="text-gray-400 mb-8">Select all that apply</p>
+
+        {error && <p className="text-red-500">{error}</p>}
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           {goals.map(({ id, icon: Icon, title, description }) => (
@@ -91,8 +108,9 @@ export default function Goals() {
             <button
               onClick={handleSubmit}
               className="w-full bg-primary hover:bg-primary-dark text-dark font-semibold py-4 rounded-xl transition-colors"
+              disabled={loading}
             >
-              Continue
+              {loading ? "Saving..." : "Continue"}
             </button>
           </div>
         )}

@@ -14,25 +14,31 @@ export default function Assistance() {
     setLoading(true);
     setError("");
 
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token"); // Get JWT from local storage
-      const response = await fetch("http://localhost:8000/save-assistance", {
+      const response = await fetch("http://localhost:8000/onboarding/save-assistance", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Send JWT token for authentication
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ assistance }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save assistance level");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to save assistance level");
       }
 
-      // Navigate to the next step on success
       navigate("/onboarding/schedule");
     } catch (err) {
-      setError("Error saving assistance level. Please try again.");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -45,48 +51,23 @@ export default function Assistance() {
         <p className="text-gray-400 mb-8">How much guidance do you need?</p>
 
         <div className="space-y-4">
-          <button
-            onClick={() => setAssistance("light")}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === "light" ? "bg-primary text-dark" : "bg-dark-lighter"
-            }`}
-          >
-            <Feather size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Light Assistance</h3>
-              <p className="text-sm opacity-80">Basic guidance and form checks</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setAssistance("moderate")}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === "moderate" ? "bg-primary text-dark" : "bg-dark-lighter"
-            }`}
-          >
-            <Shield size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Moderate Assistance</h3>
-              <p className="text-sm opacity-80">
-                Regular check-ins and detailed form guidance
-              </p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setAssistance("heavy")}
-            className={`w-full p-6 rounded-xl flex items-center ${
-              assistance === "heavy" ? "bg-primary text-dark" : "bg-dark-lighter"
-            }`}
-          >
-            <Zap size={24} className="mr-4" />
-            <div className="text-left">
-              <h3 className="font-semibold">Heavy Assistance</h3>
-              <p className="text-sm opacity-80">
-                Step-by-step guidance and constant support
-              </p>
-            </div>
-          </button>
+          {[
+            { level: "light", icon: <Feather size={24} />, title: "Light Assistance", desc: "Basic guidance and form checks" },
+            { level: "moderate", icon: <Shield size={24} />, title: "Moderate Assistance", desc: "Regular check-ins and detailed form guidance" },
+            { level: "heavy", icon: <Zap size={24} />, title: "Heavy Assistance", desc: "Step-by-step guidance and constant support" },
+          ].map(({ level, icon, title, desc }) => (
+            <button
+              key={level}
+              onClick={() => setAssistance(level)}
+              className={`w-full p-6 rounded-xl flex items-center ${assistance === level ? "bg-primary text-dark" : "bg-dark-lighter"}`}
+            >
+              {icon}
+              <div className="text-left ml-4">
+                <h3 className="font-semibold">{title}</h3>
+                <p className="text-sm opacity-80">{desc}</p>
+              </div>
+            </button>
+          ))}
         </div>
 
         {error && <p className="text-red-500 mt-4">{error}</p>}

@@ -10,10 +10,30 @@ export default function Schedule() {
     timePerSession: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/onboarding/goals');
+  
+    try {
+      const token = localStorage.getItem("token"); // Retrieve the token
+      const response = await fetch("http://localhost:8000/onboarding/save-schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(schedule),
+      });
+  
+      if (response.ok) {
+        navigate("/onboarding/goals");
+      } else {
+        console.error("Failed to save schedule");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
+  
 
   return (
     <OnboardingLayout currentStep={5} totalSteps={7}>

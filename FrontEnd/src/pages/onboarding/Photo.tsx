@@ -1,28 +1,46 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, X } from 'lucide-react';
-import OnboardingLayout from '../../components/onboarding/OnboardingLayout';
+import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Camera, Upload, X, Loader2 } from "lucide-react";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import axios from "axios";
 
 export default function Photo() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setLoading(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await axios.post(
+          "http://localhost:8000/onboarding/upload-progress-photo",
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+
+        setPhoto(response.data.photo_url);
+      } catch (err) {
+        setError("Failed to upload. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Save photo if provided
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -35,7 +53,7 @@ export default function Photo() {
           {photo ? (
             <div className="relative">
               <img
-                src={photo}
+                src={`http://localhost:8000/static/${photo}`}
                 alt="Progress"
                 className="w-full h-96 object-cover rounded-xl"
               />
@@ -51,11 +69,19 @@ export default function Photo() {
               onClick={() => fileInputRef.current?.click()}
               className="w-full h-96 bg-dark-lighter rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-gray-600 hover:border-primary transition-colors"
             >
-              <Camera size={48} className="text-gray-400 mb-4" />
-              <p className="text-gray-400">Click to add a photo</p>
-              <p className="text-sm text-gray-500 mt-2">JPG, PNG • Max 10MB</p>
+              {loading ? (
+                <Loader2 size={48} className="text-gray-400 animate-spin" />
+              ) : (
+                <>
+                  <Camera size={48} className="text-gray-400 mb-4" />
+                  <p className="text-gray-400">Click to add a photo</p>
+                  <p className="text-sm text-gray-500 mt-2">JPG, PNG • Max 10MB</p>
+                </>
+              )}
             </button>
           )}
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <input
             type="file"
@@ -69,7 +95,7 @@ export default function Photo() {
             onClick={handleSubmit}
             className="w-full bg-primary hover:bg-primary-dark text-dark font-semibold py-4 rounded-xl transition-colors"
           >
-            {photo ? 'Complete Setup' : 'Skip for Now'}
+            {photo ? "Complete Setup" : "Skip for Now"}
           </button>
         </div>
       </div>
