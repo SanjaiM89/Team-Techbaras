@@ -1,8 +1,11 @@
 import os
 import cv2
 import av
+import shutil
 import numpy as np
 import uvicorn
+import atexit
+from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from aiortc.contrib.media import MediaRecorder
@@ -10,13 +13,16 @@ from aiortc.contrib.media import MediaRecorder
 from utils import get_mediapipe_pose
 from process_frame import ProcessFrame
 from thresholds import get_thresholds_beginner, get_thresholds_pro
+from onboarding import onboarding_router
+from auth_routes import auth_router
 
 app = FastAPI()
 
-# Enable CORS for WebSocket
+# Set CORS based on environment
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")  
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,7 +42,11 @@ async def live_feed(websocket: WebSocket):
     print("WebSocket Connected!")
 
     try:
-        difficulty = await websocket.receive_text()  # Receive difficulty setting
+        try:
+            difficulty = await websocket.receive_text()  # Receive difficulty setting
+        except Exception:
+            difficulty = "beginner"
+        
         thresholds = get_thresholds(difficulty)
         live_process_frame = ProcessFrame(thresholds=thresholds, flip_frame=True)
 
@@ -64,23 +74,43 @@ async def live_feed(websocket: WebSocket):
 @app.post("/upload-video/")
 async def upload_video(file: UploadFile = File(...), difficulty: str = Query("beginner")):
     """ Process uploaded squat video for fitness tracking """
-    contents = await file.read()
-    
-    if not contents:
-        return {"error": "Empty file received"}
 
-    nparr = np.frombuffer(contents, np.uint8)
-    video = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    # Save uploaded file
+    save_path = Path(f"temp_videos/{file.filename}")
+    save_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if video is None:
-        return {"error": "Failed to decode video"}
+    with save_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Open video with OpenCV
+    cap = cv2.VideoCapture(str(save_path))
+    if not cap.isOpened():
+        return {"error": "Failed to open video"}
 
     thresholds = get_thresholds(difficulty)
     process_frame = ProcessFrame(thresholds)
-    
-    result = process_frame.process(video, pose)
 
-    return {"message": "Video processed", "result": result}
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        processed_frame, feedback = process_frame.process(frame, pose)
+
+    cap.release()
+    return {"message": "Video processed"}
+
+# Cleanup function
+def cleanup():
+    global pose
+    pose.close()
+    print("Closed MediaPipe Pose model")
+
+atexit.register(cleanup)
+
+# Routes
+app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(onboarding_router, prefix="/onboarding", tags=["Onboarding"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

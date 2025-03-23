@@ -8,11 +8,29 @@ function Signup() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement signup logic
-    navigate('/onboarding/user-details');
+    setError(null); // Clear previous errors
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('token', data.access_token);
+        navigate('/onboarding');
+      } else {
+        setError(data.detail || 'Signup failed');
+      }
+    } catch (err) {
+      setError('Server error. Try again later.');
+    }
   };
 
   return (
@@ -36,6 +54,8 @@ function Signup() {
 
           <h1 className="text-2xl font-bold text-center mb-2">Create Account</h1>
           <p className="text-gray-400 text-center mb-8">Start your fitness journey today</p>
+
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
