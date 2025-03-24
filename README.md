@@ -1,85 +1,124 @@
 
+# **Team-Techbaras**  
 
-# Team-Techbaras 🚀
+This repository contains both the **backend** and **frontend** code for a fitness and posture correction application. Follow the instructions below to set up and run the project locally.  
 
-Welcome to the Team-Techbaras project! This repository contains both the backend and frontend code for an awesome application. Follow the instructions below to get started with setting up and running the project locally.
+---
 
-## ✨ Project Overview
+## **Deployed & Running**  
 
-- **Backend**: Built with Python, with Python 3.10 recommended for posture correction features.
-- **Frontend**: Crafted with Node.js for a sleek and dynamic user experience.
+**Live Version:** [Click Here](http://15.235.185.102:5173)  
 
-## 🛠️ Prerequisites
+> **Access the hosted application at:**  
+> [http://15.235.185.102:5173](http://15.235.185.102:5173)  
 
-### Backend
-- **Python**: Any recent version will work, but Python 3.10 is recommended for optimal performance (especially for posture correction features). Download it [here](https://www.python.org/downloads/) if needed.
+---
 
-### Frontend
-- **Node.js**: Install Node.js (includes npm) from [nodejs.org](https://nodejs.org/). Recommended: LTS version.
+## **⚡ Optimized for Mobile View**  
 
-## 🚀 Getting Started
+**This application is designed with a mobile-first approach.**  
+➡️ **Use mobile view for a better user experience.**  
+➡️ The UI and features are optimized for smartphones and tablets, ensuring smooth navigation and accessibility.  
 
-### Backend Setup
+---
 
-1. **Clone the Repository**
+## **Project Overview**  
+- **Backend:** Developed using Python. Python 3.10 is recommended for optimal performance, especially for posture correction features.  
+- **Frontend:** Built with Node.js to provide a responsive and dynamic user experience.  
+
+---
+
+## **Prerequisites**  
+
+### **Backend**  
+- **Python 3.10** (Recommended). Download it [here](https://www.python.org/downloads/).  
+
+### **Frontend**  
+- **Node.js** (LTS version recommended). Install it from [nodejs.org](https://nodejs.org/).  
+
+---
+
+## **Getting Started**  
+
+### **Backend Setup**  
+
+1. **Clone the Repository**  
    ```bash
    git clone https://github.com/SanjaiM89/Team-Techbaras.git
    cd Team-Techbaras/BackEnd
    ```
 
-2. **Create Python Virtual Environment**
+2. **Create Python Virtual Environment**  
    ```bash
    python -m venv venv #(NOT RECOMMENDED)
    python3.10 -m venv venv #(RECOMMENDED)
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install Dependencies**
+3. **Install Dependencies**  
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Run the Backend**
+4. **Run the Backend**  
    ```bash
    python server.py
    ```
 
-### Frontend Setup
+---
 
-1. **Navigate to Frontend Directory**
-2. open another terminal, and move to front end using :
+### **Frontend Setup**  
 
+1. **Navigate to Frontend Directory**  
+2. Open another terminal, and move to frontend using:  
    ```bash
    cd Team-Techbaras/FrontEnd
    ```
 
-3. **Install Node.js Dependencies**
+3. **Install Node.js Dependencies**  
    ```bash
    npm i
    ```
 
-4. **Launch the Development Server**
+4. **Launch the Development Server**  
    ```bash
    npm run dev
    ```
-   - Open your browser to `http://localhost:3000` (or the port specified in your console) to see the app in action!
 
-## 📋 Requirements
+---
 
-- **Backend**: See `requirements.txt` for Python packages.
-- **Frontend**: Managed via `package.json`.
+## **Requirements**  
+- **Backend:** Dependencies listed in `requirements.txt`.  
+- **Frontend:** Dependencies managed via `package.json`.  
 
-## 🌟 Tips
+---
 
-- Ensure your terminal is in the correct directory (`BackEnd` or `FrontEnd`) before running commands.
-- If you encounter issues, check the **Troubleshooting** section below.
+## **Future Enhancements**  
+Planned features include:  
 
-## 🛠️ Troubleshooting
+### **Wearable Device Integration (Coming Soon)**  
+The project will integrate **wearable devices** for real-time posture and fitness tracking, including:  
+- Live posture monitoring.  
+- Instant feedback and correction alerts.  
+- AI-driven fitness tracking insights.  
 
-- **Backend**: If the virtual environment fails, verify your Python version with `python --version`. Use `python3 --version` on some systems.
-- **Frontend**: Clear `node_modules` and reinstall with `rm -rf node_modules && npm i` if dependencies act up.
+---
 
-## 📜 License
-This project is licensed under the MIT License. See `LICENSE` for details.
+## **Troubleshooting**  
+- **Backend Issues:** If the virtual environment setup fails, verify the Python version with:  
+   ```bash
+   python --version  # or python3 --version
+   ```
+- **Frontend Issues:** If dependencies cause issues, clear and reinstall:  
+   ```bash
+   rm -rf node_modules && npm i
+   ```
 
- 
+---
+
+## **License**  
+This project is licensed under the **MIT License**. See `LICENSE` for details.  
+
+---
+
+**The application is now live. Click the link above to explore the deployed version.**  
