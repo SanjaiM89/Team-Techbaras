@@ -18,7 +18,7 @@ function RecoveryWorkout() {
       focus: "Flexibility",
       intensity: "Medium",
       xp: 100,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714362/fullbodystretch_vlkwnl.gif",
       steps: [
         "Start with neck rotations",
         "Shoulder rolls and arm circles",
@@ -37,7 +37,7 @@ function RecoveryWorkout() {
       focus: "Balance & Flexibility",
       intensity: "Low",
       xp: 150,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714445/yogaflow_ppnzsd.gif",
       steps: [
         "Sun Salutation A",
         "Warrior I & II",
@@ -47,25 +47,6 @@ function RecoveryWorkout() {
       ],
       progress: {
         flexibility: [4, 4, 5, 5, 6, 7],
-        dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
-    },
-    {
-      name: "Mobility Work",
-      duration: 25,
-      focus: "Joint Health",
-      intensity: "Medium",
-      xp: 175,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
-      steps: [
-        "Ankle mobility",
-        "Hip mobility",
-        "Shoulder mobility",
-        "Spine mobility",
-        "Wrist mobility"
-      ],
-      progress: {
-        flexibility: [3, 4, 5, 6, 6, 7],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
       }
     }
@@ -138,14 +119,12 @@ function RecoveryWorkout() {
             ))}
           </div>
           <div className="flex space-x-4">
-            <button className="flex-1 bg-primary text-dark py-3 rounded-lg font-semibold flex items-center justify-center">
-              <ClockIcon className="mr-2" />
-              Start Timer
-            </button>
-            <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
-              <Play className="mr-2" />
-              Guide
-            </button>
+            <a href="https://youtu.be/gfzC9XMEypg?si=wF12V3Ilz97WfCyg" target="_blank" rel="noopener noreferrer">
+              <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
+                <Play className="mr-2" />
+                Guide
+              </button>
+            </a>
           </div>
         </div>
 
