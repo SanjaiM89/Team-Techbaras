@@ -44,6 +44,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
+            {/* Default Route - Redirect to Login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+
             {/* Protected Onboarding Routes */}
             <Route
               path="/onboarding"
@@ -125,15 +128,6 @@ function App() {
             {/* Protected Dashboard and Workout Routes */}
             <Route
               path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                  <Navigation />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
               element={
                 <ProtectedRoute>
                   <Dashboard />
