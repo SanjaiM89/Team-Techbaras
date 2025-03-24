@@ -47,16 +47,18 @@ Welcome to the Team-Techbaras project! This repository contains both the backend
 ### Frontend Setup
 
 1. **Navigate to Frontend Directory**
+2. open another terminal, and move to front end using :
+
    ```bash
-   cd ../FrontEnd
+   cd Team-Techbaras/FrontEnd
    ```
 
-2. **Install Node.js Dependencies**
+3. **Install Node.js Dependencies**
    ```bash
    npm i
    ```
 
-3. **Launch the Development Server**
+4. **Launch the Development Server**
    ```bash
    npm run dev
    ```
