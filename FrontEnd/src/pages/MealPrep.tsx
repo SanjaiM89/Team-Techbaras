@@ -47,7 +47,7 @@ function MealPrep() {
   });
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access_token"); // Changed from "token" to "access_token"
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -59,7 +59,7 @@ function MealPrep() {
   useEffect(() => {
     const fetchData = async () => {
       if (!token) {
-        console.log("No token found, redirecting to login");
+        console.log("No access_token found, redirecting to login");
         navigate("/login");
         return;
       }
@@ -81,12 +81,12 @@ function MealPrep() {
         console.error("Error fetching data:", error);
         if (axios.isAxiosError(error) && error.response) {
           setError(`Failed to load data: ${error.response.data.detail || error.message}`);
+          if (error.response.status === 401) {
+            localStorage.removeItem("access_token"); // Changed from "token" to "access_token"
+            navigate("/login");
+          }
         } else {
           setError("Failed to load data. Please try again.");
-        }
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
         }
       } finally {
         setLoading(false);
@@ -223,7 +223,7 @@ function MealPrep() {
 
   const generateNewMealPlan = async () => {
     if (!token) {
-      console.log("No token found, redirecting to login");
+      console.log("No access_token found, redirecting to login");
       navigate("/login");
       return;
     }
@@ -237,7 +237,7 @@ function MealPrep() {
       };
       console.log("Request config:", config);
       const response = await api.post(
-        `/mealplans/generate-day/${selectedDay}`,  // Updated endpoint
+        `/mealplans/generate-day/${selectedDay}`,
         null,
         config
       );

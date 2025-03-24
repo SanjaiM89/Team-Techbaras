@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Add useEffect
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Home, Dumbbell, Clock, Target } from 'lucide-react';
@@ -9,9 +9,10 @@ function Onboarding() {
 
   // Check if the user is authenticated
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token"); // Changed from "token" to "access_token"
     if (!token) {
-      navigate("/auth/signup"); // Redirect to signup if no token is found
+      console.log("No access_token found, redirecting to login");
+      navigate("/login"); // Redirect to login instead of signup
     }
   }, [navigate]);
 
@@ -64,7 +65,7 @@ function Onboarding() {
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
-      navigate('/');
+      navigate('/onboarding/user-details'); // Redirect to the actual onboarding start
     }
   };
 
