@@ -7,7 +7,8 @@ aiortc
 mediapipe
 python-multipart
 uvicorn[standard]
-jwt
+PyJWT
 bcrypt
 email-validator
 motor
+google.generativeai
