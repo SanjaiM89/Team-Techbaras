@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Add useEffect
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Home, Dumbbell, Clock, Target } from 'lucide-react';
@@ -6,6 +6,14 @@ import { ChevronRight, Home, Dumbbell, Clock, Target } from 'lucide-react';
 function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+
+  // Check if the user is authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/signup"); // Redirect to signup if no token is found
+    }
+  }, [navigate]);
 
   const steps = [
     {

@@ -1,17 +1,42 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { User, Lock, LogIn } from 'lucide-react';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, LogIn } from "lucide-react";
 
 function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement login logic
-    navigate('/');
+    setError(null); // Reset error state
+
+    try {
+      const payload = { email, password };
+      console.log("Sending payload:", payload); // Debug payload
+
+      const response = await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("access_token", data.access_token); // Updated key to "access_token"
+        console.log("Stored token:", data.access_token); // Debug log
+        navigate("/dashboard"); // Redirect to Dashboard.tsx
+      } else {
+        const errorMessage = Array.isArray(data.detail)
+          ? data.detail.map((err: any) => err.msg).join(", ")
+          : data.detail || "Login failed";
+        setError(errorMessage);
+      }
+    } catch (err) {
+      setError("Server error. Try again later.");
+    }
   };
 
   return (
@@ -36,17 +61,22 @@ function Login() {
           <h1 className="text-2xl font-bold text-center mb-2">Welcome Back</h1>
           <p className="text-gray-400 text-center mb-8">Sign in to continue your fitness journey</p>
 
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
+              <label className="block text-sm font-medium mb-2">Email</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Mail
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -55,7 +85,10 @@ function Login() {
             <div>
               <label className="block text-sm font-medium mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Lock
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <input
                   type="password"
                   value={password}
@@ -77,7 +110,7 @@ function Login() {
           </form>
 
           <p className="text-center mt-8 text-gray-400">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link to="/signup" className="text-primary hover:text-primary-dark font-semibold">
               Sign up!
             </Link>

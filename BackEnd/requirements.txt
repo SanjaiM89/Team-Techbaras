@@ -7,3 +7,7 @@ aiortc
 mediapipe
 python-multipart
 uvicorn[standard]
+jwt
+bcrypt
+email-validator
+motor

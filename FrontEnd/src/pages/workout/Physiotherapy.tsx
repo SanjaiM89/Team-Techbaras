@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, ChevronLeft, Play, Timer as TimerIcon, Heart, Brain, Bone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Activity, ChevronLeft, Play, Timer as TimerIcon, Bone, CheckCircle, Trash2, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkoutChatbot from '../../components/WorkoutChatbot';
 import WorkoutTimer from '../../components/workout/Timer';
@@ -10,15 +10,14 @@ import WorkoutCustomizer from '../../components/workout/WorkoutCustomizer';
 
 function PhysiotherapyWorkout() {
   const [selectedExercise, setSelectedExercise] = useState(0);
-
-  const exercises = [
+  const [exercises, setExercises] = useState([
     {
       name: "Lower Back Relief",
       duration: 15,
       focus: "Spine Health",
       intensity: "Low",
       xp: 100,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714959/lowerback_qfnhlt.gif",
       steps: [
         "Cat-Cow Stretches (2 mins)",
         "Pelvic Tilts (2 mins)",
@@ -29,7 +28,8 @@ function PhysiotherapyWorkout() {
       progress: {
         painLevel: [7, 6, 5, 4, 3, 2],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     },
     {
       name: "Knee Rehabilitation",
@@ -37,7 +37,7 @@ function PhysiotherapyWorkout() {
       focus: "Joint Mobility",
       intensity: "Low",
       xp: 120,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714962/knee_ez2t0g.gif",
       steps: [
         "Heel Slides (3 mins)",
         "Straight Leg Raises (3 mins)",
@@ -48,7 +48,8 @@ function PhysiotherapyWorkout() {
       progress: {
         painLevel: [8, 7, 6, 4, 3, 2],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     },
     {
       name: "Shoulder Mobility",
@@ -56,7 +57,7 @@ function PhysiotherapyWorkout() {
       focus: "Range of Motion",
       intensity: "Medium",
       xp: 110,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714965/shoulder_hf3mrc.gif",
       steps: [
         "Pendulum Swings (3 mins)",
         "Wall Slides (3 mins)",
@@ -67,7 +68,8 @@ function PhysiotherapyWorkout() {
       progress: {
         painLevel: [6, 5, 4, 3, 2, 1],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     },
     {
       name: "Neck Pain Relief",
@@ -75,7 +77,7 @@ function PhysiotherapyWorkout() {
       focus: "Cervical Spine",
       intensity: "Low",
       xp: 90,
-      gifUrl: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmZiMzM5MjBmZDY4ZjZhZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4ZjY4Zg/3oEduKoCblNVAgAbYc/giphy.gif",
+      gifUrl: "https://res.cloudinary.com/dzqxtjau7/image/upload/v1742714968/neck_aac8k7.gif",
       steps: [
         "Chin Tucks (2 mins)",
         "Neck Rotations (2 mins)",
@@ -86,18 +88,40 @@ function PhysiotherapyWorkout() {
       progress: {
         painLevel: [7, 6, 5, 3, 2, 1],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     }
-  ];
+  ]);
+  const [showCompletionModal, setShowCompletionModal] = useState(false); // State for success modal
+  const [xpEarned, setXpEarned] = useState<number>(0); // State for XP earned
 
   const handleCustomization = (options: any) => {
-    // Update exercise settings
     console.log('Updated exercise settings:', options);
   };
 
   const handleTimerComplete = () => {
-    // Handle exercise completion
     console.log('Exercise completed!');
+  };
+
+  const handleCompleteExercise = (index: number) => {
+    const updatedExercises = [...exercises];
+    if (!updatedExercises[index].completed) {
+      updatedExercises[index].completed = true;
+      setExercises(updatedExercises);
+      setXpEarned(updatedExercises[index].xp); // Set XP for the modal
+      setShowCompletionModal(true);
+      setTimeout(() => setShowCompletionModal(false), 3000); // Hide modal after 3 seconds
+    }
+  };
+
+  const handleDeleteExercise = (index: number) => {
+    const updatedExercises = exercises.filter((_, i) => i !== index);
+    setExercises(updatedExercises);
+    if (selectedExercise === index) {
+      setSelectedExercise(0); // Reset to first exercise if deleted one was selected
+    } else if (selectedExercise > index) {
+      setSelectedExercise(selectedExercise - 1); // Adjust index if deleted exercise was before selected
+    }
   };
 
   return (
@@ -149,22 +173,20 @@ function PhysiotherapyWorkout() {
             />
           </div>
 
-          <div className="space-y-2 mb-4">
-            {exercises[selectedExercise].steps.map((step, index) => (
-              <div key={index} className="text-gray-400">
-                • {step}
-              </div>
-            ))}
-          </div>
-          <div className="flex space-x-4">
-            <button className="flex-1 bg-primary text-dark py-3 rounded-lg font-semibold flex items-center justify-center">
-              <TimerIcon className="mr-2" />
-              Start Session
-            </button>
-            <button className="flex-1 bg-dark-lighter text-primary py-3 rounded-lg font-semibold flex items-center justify-center">
-              <Play className="mr-2" />
-              Guide
-            </button>
+          <div className="flex items-start mb-4">
+            <div className="space-y-2 flex-1">
+              {exercises[selectedExercise].steps.map((step, index) => (
+                <div key={index} className="text-gray-400">
+                  • {step}
+                </div>
+              ))}
+            </div>
+            <a href="https://youtu.be/zME4tZ4s-UE?si=XQS70ouDJIGNYtR1" target="_blank" rel="noopener noreferrer">
+              <button className="bg-dark-lighter text-primary py-2 px-4 rounded-lg font-semibold flex items-center ml-4">
+                <Play className="mr-2" />
+                Guide
+              </button>
+            </a>
           </div>
         </div>
 
@@ -188,22 +210,60 @@ function PhysiotherapyWorkout() {
                 index === selectedExercise ? 'bg-dark-lighter border-primary' : 'bg-dark-light'
               } border-2 rounded-xl p-4 flex items-center justify-between`}
             >
-              <div className="flex items-center">
+              <div className="flex items-center flex-1">
                 <Bone className={`${
                   index === selectedExercise ? 'text-green-500' : 'text-gray-400'
                 } mr-3`} />
-                <div className="text-left">
+                <div className="text-left flex-1">
                   <h3 className="font-semibold">{exercise.name}</h3>
                   <p className="text-sm text-gray-400">{exercise.duration} mins • {exercise.focus}</p>
                 </div>
               </div>
-              <span className="text-primary">+{exercise.xp} XP</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-primary">+{exercise.xp} XP</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent selecting the exercise when completing
+                    handleCompleteExercise(index);
+                  }}
+                  className={`p-1 ${exercise.completed ? "text-green-500 cursor-not-allowed" : "text-gray-400 hover:text-green-500"}`}
+                  disabled={exercise.completed}
+                >
+                  <CheckCircle size={20} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent selecting the exercise when deleting
+                    handleDeleteExercise(index);
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-500"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
             </button>
           ))}
         </div>
       </section>
 
       <WorkoutChatbot />
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showCompletionModal && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-dark px-6 py-3 rounded-lg shadow-lg"
+          >
+            <div className="flex items-center">
+              <Trophy className="mr-2" />
+              <p className="font-semibold">Great job! +{xpEarned} XP earned!</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
