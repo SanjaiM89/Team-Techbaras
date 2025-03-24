@@ -59,6 +59,7 @@ function MealPrep() {
   useEffect(() => {
     const fetchData = async () => {
       if (!token) {
+        console.log("No token found, redirecting to login");
         navigate("/login");
         return;
       }
@@ -78,7 +79,11 @@ function MealPrep() {
         setError(null);
       } catch (error) {
         console.error("Error fetching data:", error);
-        setError("Failed to load data. Please try again.");
+        if (axios.isAxiosError(error) && error.response) {
+          setError(`Failed to load data: ${error.response.data.detail || error.message}`);
+        } else {
+          setError("Failed to load data. Please try again.");
+        }
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           localStorage.removeItem("token");
           navigate("/login");
@@ -118,7 +123,11 @@ function MealPrep() {
       });
     } catch (error) {
       console.error("Error adding meal:", error);
-      setError("Failed to add meal.");
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to add meal: ${error.response.data.detail || error.message}`);
+      } else {
+        setError("Failed to add meal.");
+      }
     }
   };
 
@@ -148,7 +157,11 @@ function MealPrep() {
       setTimeout(() => setShowCompletionModal(false), 3000);
     } catch (error) {
       console.error("Error completing meal:", error);
-      setError("Failed to complete meal.");
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to complete meal: ${error.response.data.detail || error.message}`);
+      } else {
+        setError("Failed to complete meal.");
+      }
     }
   };
 
@@ -170,7 +183,11 @@ function MealPrep() {
       setError(null);
     } catch (error) {
       console.error("Error deleting meal:", error);
-      setError("Failed to delete meal.");
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to delete meal: ${error.response.data.detail || error.message}`);
+      } else {
+        setError("Failed to delete meal.");
+      }
     }
   };
 
@@ -196,30 +213,55 @@ function MealPrep() {
       setEditingMeal(null);
     } catch (error) {
       console.error("Error updating meal:", error);
-      setError("Failed to update meal.");
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to update meal: ${error.response.data.detail || error.message}`);
+      } else {
+        setError("Failed to update meal.");
+      }
     }
   };
 
   const generateNewMealPlan = async () => {
     if (!token) {
+      console.log("No token found, redirecting to login");
       navigate("/login");
       return;
     }
   
+    console.log("Generating new meal plan for day:", selectedDay);
+    console.log("Token:", token);
     setGenerateLoading(true);
     try {
-      await api.post(`/mealplans/generate/${selectedDay}`, {}, {
+      const config = {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      };
+      console.log("Request config:", config);
+      const response = await api.post(
+        `/mealplans/generate-day/${selectedDay}`,  // Updated endpoint
+        null,
+        config
+      );
+      console.log("Generate response:", response.data);
   
-      const response = await api.get("/mealplans", {
+      const mealResponse = await api.get("/mealplans", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setWeeklyMeals(response.data);
+      setWeeklyMeals(mealResponse.data);
       setError(null);
     } catch (error) {
-      console.error("Error generating meal plan:", error);
-      setError("Failed to generate meal plan.");
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Error generating meal plan:", error.response.status, error.response.data);
+        const errorDetail = error.response.data.detail;
+        if (Array.isArray(errorDetail)) {
+          const errorMessages = errorDetail.map((e: any) => `${e.loc.join('.')}: ${e.msg}`).join(', ');
+          setError(`Failed to generate meal plan: ${errorMessages}`);
+        } else {
+          setError(`Failed to generate meal plan: ${errorDetail || error.message}`);
+        }
+      } else {
+        console.error("Error generating meal plan:", error);
+        setError("Failed to generate meal plan: Unknown error");
+      }
     } finally {
       setGenerateLoading(false);
     }
@@ -425,7 +467,7 @@ function MealPrep() {
               <p className="text-xl font-bold text-primary">{preferences.protein}g</p>
             </div>
             <div>
-              <p className="text-gray-400 text-sm">=KMeals Completed</p>
+              <p className="text-gray-400 text-sm">Meals Completed</p>
               <p className="text-xl font-bold text-green-500">
                 {weeklyMeals.length > 0
                   ? weeklyMeals[selectedDay]?.breakfast.filter(m => m.completed).length +
