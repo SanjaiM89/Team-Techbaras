@@ -11,11 +11,11 @@ function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Reset error state
+    setError(null);
 
     try {
       const payload = { email, password };
-      console.log("Sending payload:", payload); // Debug payload
+      console.log("Sending payload:", payload);
 
       const response = await fetch("http://localhost:8000/auth/login", {
         method: "POST",
@@ -23,11 +23,15 @@ function Login() {
         body: JSON.stringify(payload),
       });
 
+      console.log("Response status:", response.status);
       const data = await response.json();
+      console.log("Response data:", data);
+
       if (response.ok) {
-        localStorage.setItem("access_token", data.access_token); // Updated key to "access_token"
-        console.log("Stored token:", data.access_token); // Debug log
-        navigate("/dashboard"); // Redirect to Dashboard.tsx
+        localStorage.setItem("access_token", data.access_token);
+        console.log("Stored token:", data.access_token);
+        console.log("Token after set:", localStorage.getItem("access_token"));
+        setTimeout(() => navigate("/dashboard"), 100); // Slight delay to ensure persistence
       } else {
         const errorMessage = Array.isArray(data.detail)
           ? data.detail.map((err: any) => err.msg).join(", ")
@@ -35,6 +39,7 @@ function Login() {
         setError(errorMessage);
       }
     } catch (err) {
+      console.error("Fetch error:", err);
       setError("Server error. Try again later.");
     }
   };

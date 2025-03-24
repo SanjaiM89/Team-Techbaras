@@ -24,7 +24,7 @@ function Signup() {
       const data = await response.json();
       if (response.ok) {
         console.log("Token received:", data.access_token); // Debugging
-        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('access_token', data.access_token); // Changed from 'token' to 'access_token'
         navigate('/onboarding');
       } else {
         setError(data.detail || 'Signup failed');

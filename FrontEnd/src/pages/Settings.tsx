@@ -28,7 +28,8 @@ function Settings() {
       tips: false
     }
   });
-  const [token] = useState(localStorage.getItem('token') || '');
+  const [token] = useState(localStorage.getItem('access_token') || ''); // Changed from 'token' to 'access_token'
+  const [error, setError] = useState<string | null>(null); // Added for error feedback
 
   const api = axios.create({
     baseURL: 'http://localhost:8000/api',
@@ -38,21 +39,37 @@ function Settings() {
   // Fetch initial profile data
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token) {
+        console.log("No access_token found, redirecting to login");
+        navigate('/login');
+        return;
+      }
+
       try {
         const response = await api.get('/settings/profile');
+        console.log("Profile fetch response:", response.data); // Debug response
         setProfile(prev => ({
           ...prev,
-          name: response.data.name,
-          email: response.data.email,
-          height: String(response.data.height),
-          weight: String(response.data.weight)
+          name: response.data.name || '',
+          email: response.data.email || '',
+          height: String(response.data.height || ''),
+          weight: String(response.data.weight || '')
         }));
+        setError(null); // Clear any previous errors
       } catch (error) {
         console.error('Error fetching profile:', error);
-        navigate('/login');
+        if (axios.isAxiosError(error) && error.response) {
+          setError(`Failed to load profile: ${error.response.data.detail || error.message}`);
+          if (error.response.status === 401) {
+            localStorage.removeItem('access_token'); // Clear invalid token
+            navigate('/login');
+          }
+        } else {
+          setError('Failed to load profile. Please try again.');
+        }
       }
     };
-    if (token) fetchProfile();
+    fetchProfile();
   }, [token, navigate]);
 
   const premiumFeatures = [
@@ -111,10 +128,15 @@ function Settings() {
       console.log('Profile update response:', response.data);
       setActiveSection(null);
       setShowSuccess(true);
+      setError(null);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile');
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to update profile: ${error.response.data.detail || error.message}`);
+      } else {
+        setError('Failed to update profile');
+      }
     }
   };
 
@@ -136,7 +158,7 @@ function Settings() {
     }
 
     if (rating < 1 || rating > 5) {
-      alert('Please select a rating between 1 and 5 stars');
+      setError('Please select a rating between 1 and 5 stars');
       return;
     }
 
@@ -152,10 +174,15 @@ function Settings() {
       setFeedbackType('general');
       setActiveSection(null);
       setShowSuccess(true);
+      setError(null);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      alert('Failed to submit feedback');
+      if (axios.isAxiosError(error) && error.response) {
+        setError(`Failed to submit feedback: ${error.response.data.detail || error.message}`);
+      } else {
+        setError('Failed to submit feedback');
+      }
     }
   };
 
@@ -164,7 +191,7 @@ function Settings() {
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token'); // Changed from 'token' to 'access_token'
     navigate('/login');
   };
 
@@ -179,6 +206,8 @@ function Settings() {
         <h1 className="text-2xl font-bold mb-2">Settings</h1>
         <p className="text-gray-400">Manage your account</p>
       </header>
+
+      {error && <p className="text-red-500 mb-4">{error}</p>} {/* Added error display */}
 
       <div className="space-y-4 mb-8">
         <button
@@ -251,6 +280,7 @@ function Settings() {
           )}
         </AnimatePresence>
 
+        {/* Rest of the JSX remains unchanged */}
         <button
           onClick={() => setActiveSection(activeSection === 'notifications' ? null : 'notifications')}
           className="w-full bg-dark-light hover:bg-dark-lighter transition-colors p-4 rounded-xl flex items-center justify-between"

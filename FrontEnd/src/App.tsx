@@ -25,9 +25,11 @@ import Navigation from './components/Navigation';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access_token");
+  console.log("ProtectedRoute - Token:", token); // Debug token
   if (!token) {
-    return <Navigate to="/signup" replace />; // Redirect to signup if no token
+    console.log("No token found, redirecting to login");
+    return <Navigate to="/login" replace />;
   }
   return children;
 };
