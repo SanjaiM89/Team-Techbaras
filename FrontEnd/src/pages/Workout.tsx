@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save, RefreshCw, Trash2, CheckCircle } from "lucide-react";
+import { Dumbbell, Heart, Brain, Bone, ChevronRight, Plus, X, Save, RefreshCw, Trash2, CheckCircle, Trophy } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -27,6 +27,7 @@ type Workout = {
   exercises: Exercise[];
   user_id: string;
   completed: boolean;
+  completed_at?: string;
 };
 
 type JwtPayload = {
@@ -42,10 +43,11 @@ function Workout() {
   const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false); // New state for modal
+  const [xpEarned, setXpEarned] = useState<number>(0); // New state for XP earned
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("access_token");
   const userId = token ? jwtDecode<JwtPayload>(token).user_id : null;
 
   const [newWorkout, setNewWorkout] = useState<Workout>({
@@ -100,8 +102,7 @@ function Workout() {
         const response = await api.get("/workouts", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Fetched workouts:", response.data);
-        // Log and filter out workouts without an _id
+        console.log("Fetched workouts (raw response):", response.data);
         response.data.forEach((workout: Workout, index: number) => {
           if (!workout._id) {
             console.error(`Workout at index ${index} is missing _id:`, workout);
@@ -115,7 +116,7 @@ function Workout() {
         console.error("Error fetching workouts:", error);
         setError("Failed to load workouts. Please try again.");
         if (axios.isAxiosError(error) && error.response?.status === 401) {
-          localStorage.removeItem("token");
+          localStorage.removeItem("access_token");
           navigate("/login");
         }
       }
@@ -136,14 +137,13 @@ function Workout() {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Add workout response:", response.data);
-      if (!response.data.workout_id || typeof response.data.workout_id !== "string") {
-        console.error("Backend response missing or invalid workout_id:", response.data);
-        setError("Failed to add workout: Missing or invalid workout ID from server.");
+      if (!response.data._id) {
+        console.error("Backend response missing _id:", response.data);
+        setError("Failed to add workout: Missing workout ID from server.");
         return;
       }
       const workoutIndex = customWorkouts.length;
-      const newWorkoutWithId = { ...newWorkout, _id: response.data.workout_id, completed: false };
-      console.log("Added workout:", newWorkoutWithId);
+      const newWorkoutWithId = { ...newWorkout, _id: response.data._id, completed: false };
       setCustomWorkouts([...customWorkouts, newWorkoutWithId]);
       setShowAddWorkout(false);
       setSelectedWorkoutIndex(workoutIndex);
@@ -221,9 +221,9 @@ function Workout() {
       });
       const generatedWorkout = response.data;
       console.log("Generated workout:", generatedWorkout);
-      if (!generatedWorkout._id || typeof generatedWorkout._id !== "string") {
-        console.error("Generated workout is missing or invalid _id:", generatedWorkout);
-        setError("Failed to generate workout: Missing or invalid workout ID from server.");
+      if (!generatedWorkout._id) {
+        console.error("Generated workout missing _id:", generatedWorkout);
+        setError("Failed to generate workout: Missing workout ID from server.");
         return;
       }
       setCustomWorkouts([...customWorkouts, generatedWorkout]);
@@ -232,11 +232,7 @@ function Workout() {
       setError(null);
     } catch (error) {
       console.error("Error generating workout:", error);
-      if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.detail || "Failed to generate workout. Please try again.");
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+      setError("Failed to generate workout. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -248,20 +244,11 @@ function Workout() {
       return;
     }
 
-    if (!workoutId || typeof workoutId !== "string") {
-      console.error("Delete workout failed: Invalid workout ID", workoutId);
-      setError("Cannot delete workout: Invalid workout ID.");
-      return;
-    }
-
-    console.log(`Deleting workout with ID: ${workoutId} at index: ${index}`);
     try {
-      const response = await api.delete(`/workouts/${workoutId}`, {
+      await api.delete(`/workouts/${workoutId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Delete response:", response.data);
       const updatedWorkouts = customWorkouts.filter((_, i) => i !== index);
-      console.log("Updated workouts after deletion:", updatedWorkouts);
       setCustomWorkouts(updatedWorkouts);
       setError(null);
       if (selectedWorkoutIndex === index) {
@@ -270,11 +257,7 @@ function Workout() {
       }
     } catch (error) {
       console.error("Error deleting workout:", error);
-      if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.detail || "Failed to delete workout. Please try again.");
-      } else {
-        setError("An unexpected error occurred while deleting the workout.");
-      }
+      setError("Failed to delete workout. Please try again.");
     }
   };
 
@@ -284,23 +267,17 @@ function Workout() {
       return;
     }
 
-    if (!workoutId || typeof workoutId !== "string") {
-      console.error("Complete workout failed: Invalid workout ID", workoutId);
-      setError("Cannot complete workout: Invalid workout ID.");
-      return;
-    }
-
-    console.log(`Completing workout with ID: ${workoutId} at index: ${index}`);
     try {
       const response = await api.post(`/workouts/${workoutId}/complete`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Complete response:", response.data);
-      const updatedWorkouts = customWorkouts.filter((_, i) => i !== index);
-      console.log("Updated workouts after completion:", updatedWorkouts);
+      const updatedWorkouts = [...customWorkouts];
+      updatedWorkouts[index].completed = true;
+      updatedWorkouts[index].completed_at = new Date().toISOString();
       setCustomWorkouts(updatedWorkouts);
-      setCompletionMessage(`Workout completed! You earned ${response.data.xp_added} XP. Total XP: ${response.data.total_xp}`);
-      setTimeout(() => setCompletionMessage(null), 3000);
+      setXpEarned(response.data.xp_added); // Set XP earned for the modal
+      setShowCompletionModal(true); // Show the modal
+      setTimeout(() => setShowCompletionModal(false), 3000); // Hide after 3 seconds
       setError(null);
       if (selectedWorkoutIndex === index) {
         setShowWorkoutDetails(false);
@@ -308,11 +285,7 @@ function Workout() {
       }
     } catch (error) {
       console.error("Error completing workout:", error);
-      if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.detail || "Failed to complete workout. Please try again.");
-      } else {
-        setError("An unexpected error occurred while completing the workout.");
-      }
+      setError("Failed to complete workout. Please try again.");
     }
   };
 
@@ -349,9 +322,6 @@ function Workout() {
       </header>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
-      {completionMessage && (
-        <p className="text-green-500 mb-4 animate-pulse">{completionMessage}</p>
-      )}
 
       <div className="space-y-4">
         <Link to="/workout/strength" className="block">
@@ -410,66 +380,56 @@ function Workout() {
           </div>
         </Link>
 
-        {customWorkouts.map((workout, index) => {
-          const isValidWorkout = workout._id && typeof workout._id === "string";
-          if (!isValidWorkout) {
-            console.warn(`Skipping rendering of invalid workout at index ${index}:`, workout);
-          }
-          return isValidWorkout ? (
-            <div key={workout._id} className="block">
-              <div className="bg-dark-light rounded-xl p-6">
-                <div className="flex items-center mb-4">
-                  {workout.type === "strength" && <Dumbbell className="text-primary mr-3" size={24} />}
-                  {workout.type === "cardio" && <Heart className="text-red-500 mr-3" size={24} />}
-                  {workout.type === "recovery" && <Brain className="text-purple-500 mr-3" size={24} />}
-                  <h2 className="text-xl font-semibold flex-1">{workout.title}</h2>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isValidWorkout) return;
-                        handleCompleteWorkout(workout._id, index);
-                      }}
-                      className={`p-1 ${workout.completed ? "text-green-500 cursor-not-allowed" : "text-gray-400 hover:text-green-500"}`}
-                      disabled={workout.completed || !isValidWorkout}
-                    >
-                      <CheckCircle size={20} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isValidWorkout) return;
-                        handleDeleteWorkout(workout._id, index);
-                      }}
-                      className={`p-1 ${!isValidWorkout ? "text-gray-400 cursor-not-allowed" : "text-gray-400 hover:text-red-500"}`}
-                      disabled={!isValidWorkout}
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-gray-400 mb-4">{workout.description}</p>
-                <div
-                  className="flex justify-between items-center cursor-pointer"
-                  onClick={() => {
-                    setSelectedWorkoutIndex(index);
-                    setShowWorkoutDetails(true);
-                  }}
-                >
-                  <div className="flex items-center space-x-4">
-                    <span className="text-primary">+{workout.xp} XP per session</span>
-                    <span className="text-gray-400">{workout.duration} mins</span>
-                    <span className="text-gray-400">{workout.intensity}</span>
-                  </div>
-                  <ChevronRight className="text-gray-400" />
+        {customWorkouts.map((workout, index) => (
+          <div key={workout._id} className="block">
+            <div className="bg-dark-light rounded-xl p-6">
+              <div className="flex items-center mb-4">
+                {workout.type === "strength" && <Dumbbell className="text-primary mr-3" size={24} />}
+                {workout.type === "cardio" && <Heart className="text-red-500 mr-3" size={24} />}
+                {workout.type === "recovery" && <Brain className="text-purple-500 mr-3" size={24} />}
+                <h2 className="text-xl font-semibold flex-1">{workout.title}</h2>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCompleteWorkout(workout._id, index);
+                    }}
+                    className={`p-1 ${workout.completed ? "text-green-500 cursor-not-allowed" : "text-gray-400 hover:text-green-500"}`}
+                    disabled={workout.completed}
+                  >
+                    <CheckCircle size={20} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteWorkout(workout._id, index);
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-500"
+                  >
+                    <Trash2 size={20} />
+                  </button>
                 </div>
               </div>
+              <p className="text-gray-400 mb-4">{workout.description}</p>
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => {
+                  setSelectedWorkoutIndex(index);
+                  setShowWorkoutDetails(true);
+                }}
+              >
+                <div className="flex items-center space-x-4">
+                  <span className="text-primary">+{workout.xp} XP per session</span>
+                  <span className="text-gray-400">{workout.duration} mins</span>
+                  <span className="text-gray-400">{workout.intensity}</span>
+                </div>
+                <ChevronRight className="text-gray-400" />
+              </div>
             </div>
-          ) : null;
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* Add Workout Modal */}
       <AnimatePresence>
         {showAddWorkout && (
           <motion.div
@@ -561,7 +521,6 @@ function Workout() {
         )}
       </AnimatePresence>
 
-      {/* Add Exercise Modal */}
       <AnimatePresence>
         {showAddExercise && selectedWorkoutIndex !== null && (
           <motion.div
@@ -691,7 +650,6 @@ function Workout() {
         )}
       </AnimatePresence>
 
-      {/* Workout Details Modal */}
       <AnimatePresence>
         {showWorkoutDetails && selectedWorkoutIndex !== null && (
           <motion.div
@@ -748,6 +706,23 @@ function Workout() {
                 <Plus className="mr-2" size={20} />
                 Add Exercise
               </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showCompletionModal && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-dark px-6 py-3 rounded-lg shadow-lg"
+          >
+            <div className="flex items-center">
+              <Trophy className="mr-2" />
+              <p className="font-semibold">Great job! +{xpEarned} XP earned!</p>
             </div>
           </motion.div>
         )}

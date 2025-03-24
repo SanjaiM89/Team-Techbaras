@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from aiortc.contrib.media import MediaRecorder
+from dashboard import dashboard_router  # Import the new router
 
 from utils import get_mediapipe_pose
 from process_frame import ProcessFrame
@@ -115,6 +116,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(onboarding_router, prefix="/onboarding", tags=["Onboarding"])
 app.include_router(workout_router, prefix="/workouts", tags=["workouts"])
 app.include_router(mealprep_router, prefix="/api")  # Mealprep routes under /api
+app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])  # Add dashboard router
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

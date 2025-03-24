@@ -1,23 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Dumbbell, Apple, Trophy, Users, X, Award, Zap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Dashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
   const [showCollaboration, setShowCollaboration] = useState(false);
+  const [friendUsername, setFriendUsername] = useState('');
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  const leaderboard = [
-    { name: "Sarath.", points: 2500, rank: 1 },
-    { name: "Swetha.", points: 2350, rank: 2 },
-    { name: "Sanjai .M (You)", points: 2200, rank: 3 },
-    { name: "Tanish.", points: 2100, rank: 4 },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      const token = localStorage.getItem('access_token');
+      console.log('Token from localStorage:', token); // Debug log
+      if (!token) {
+        setError('Please log in to view the dashboard');
+        navigate('/login'); // Redirect to login
+        return;
+      }
+      try {
+        const response = await fetch('http://localhost:8000/dashboard/dashboard', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to fetch dashboard data');
+        }
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchDashboardData();
+  }, [navigate]);
 
-  const friends = [
-    { name: "Sarath.", status: "Working out", xp: 2500 },
-    { name: "Tanish.", status: "Last active 2h ago", xp: 2350 },
-    { name: "Swetha.", status: "Completed 3 workouts today", xp: 2100 },
-  ];
+  const handleAddFriend = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setError('Please log in to add a friend');
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:8000/dashboard/dashboard/add-friend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username: friendUsername }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to add friend');
+      }
+      const result = await response.json();
+      alert(result.message);
+      const updatedResponse = await fetch('http://localhost:8000/dashboard/dashboard', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedData = await updatedResponse.json();
+      setDashboardData(updatedData);
+      setFriendUsername('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (!dashboardData) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <motion.div
@@ -29,12 +84,12 @@ function Dashboard() {
       <header className="mb-8">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome back, Sanjai</h1>
-            <p className="text-gray-400">Level 15 Fitness Warrior 💪</p>
+            <h1 className="text-2xl font-bold mb-2">Welcome back, {dashboardData.username}</h1>
+            <p className="text-gray-400">Level {Math.floor(dashboardData.xp / 100)} Fitness Warrior 💪</p>
           </div>
           <div className="flex items-center bg-dark-light rounded-xl px-3 py-2">
             <Zap className="text-yellow-500 mr-2" size={20} />
-            <span className="font-bold">2200 XP</span>
+            <span className="font-bold">{dashboardData.xp} XP</span>
           </div>
         </div>
       </header>
@@ -44,7 +99,7 @@ function Dashboard() {
           <Activity className="text-primary mb-2" />
           <h3 className="font-semibold">Daily Streak</h3>
           <div className="flex items-center">
-            <p className="text-2xl font-bold text-primary">7</p>
+            <p className="text-2xl font-bold text-primary">{dashboardData.daily_streak}</p>
             <span className="text-gray-400 ml-2">days</span>
           </div>
         </div>
@@ -52,7 +107,7 @@ function Dashboard() {
           <Trophy className="text-yellow-500 mb-2" />
           <h3 className="font-semibold">Weekly Goal</h3>
           <div className="flex items-center">
-            <p className="text-2xl font-bold text-yellow-500">4/5</p>
+            <p className="text-2xl font-bold text-yellow-500">{dashboardData.weekly_goals.completed}/{dashboardData.weekly_goals.goal}</p>
             <span className="text-gray-400 ml-2">workouts</span>
           </div>
         </div>
@@ -101,7 +156,6 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Floating Collaboration Button */}
       <button
         onClick={() => setShowCollaboration(true)}
         className="fixed bottom-20 right-6 bg-primary text-dark p-4 rounded-full shadow-lg"
@@ -109,7 +163,6 @@ function Dashboard() {
         <Users size={24} />
       </button>
 
-      {/* Collaboration Modal */}
       <AnimatePresence>
         {showCollaboration && (
           <motion.div
@@ -125,11 +178,10 @@ function Dashboard() {
                   <X className="text-gray-400" />
                 </button>
               </div>
-              
               <div className="p-4">
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-3">Leaderboard</h3>
-                  {leaderboard.map((user, index) => (
+                  {dashboardData.leaderboard.map((user, index) => (
                     <div key={index} className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <span className="w-8 text-primary">{user.rank}</span>
@@ -139,10 +191,9 @@ function Dashboard() {
                     </div>
                   ))}
                 </div>
-                
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Friends</h3>
-                  {friends.map((friend, index) => (
+                  {dashboardData.friends.map((friend, index) => (
                     <div key={index} className="mb-3">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{friend.name}</span>
@@ -151,6 +202,21 @@ function Dashboard() {
                       <p className="text-sm text-gray-400">{friend.status}</p>
                     </div>
                   ))}
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      value={friendUsername}
+                      onChange={(e) => setFriendUsername(e.target.value)}
+                      placeholder="Enter friend's username"
+                      className="w-full p-2 rounded bg-dark-lighter text-white mb-2"
+                    />
+                    <button
+                      onClick={handleAddFriend}
+                      className="w-full bg-primary text-dark p-2 rounded"
+                    >
+                      Add Friend
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

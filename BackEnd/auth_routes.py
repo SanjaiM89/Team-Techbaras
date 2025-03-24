@@ -11,7 +11,7 @@ from typing import Optional
 
 load_dotenv()
 
-auth_router = APIRouter()  # ✅ Renamed from 'router' to 'auth_router'
+auth_router = APIRouter()  # Renamed from 'router' to 'auth_router'
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 
@@ -21,14 +21,17 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class OnboardingData(BaseModel):
     workoutLocation: Optional[str] = None
     weeklyCommitment: Optional[str] = None
     fitnessGoal: Optional[str] = None
+
 
 # Generate JWT Token
 def create_jwt(user_id: str):
@@ -49,7 +52,7 @@ async def signup(user: UserCreate):
         "username": user.username,
         "email": user.email,
         "password": hashed_password,
-        "onboarding": {}  # ✅ Store onboarding data here
+        "onboarding": {}  # Store onboarding data here
     }
 
     result = await users_collection.insert_one(new_user)
@@ -57,8 +60,9 @@ async def signup(user: UserCreate):
     
     return {"message": "User registered successfully", "access_token": token}
 
+
 # User Login
-@auth_router.post("/login")  # ✅ Changed 'router' to 'auth_router'
+@auth_router.post("/login")
 async def login(user: UserLogin):
     db_user = await users_collection.find_one({"email": user.email})
     if not db_user or not bcrypt.checkpw(user.password.encode(), db_user["password"].encode()):

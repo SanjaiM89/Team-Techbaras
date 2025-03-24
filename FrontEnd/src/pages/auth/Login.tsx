@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, LogIn } from "lucide-react"; // Changed User to Mail for email
+import { Mail, Lock, LogIn } from "lucide-react";
 
 function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState(""); // Changed username to email
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +14,7 @@ function Login() {
     setError(null); // Reset error state
 
     try {
-      const payload = { email, password }; // Updated to match backend
+      const payload = { email, password };
       console.log("Sending payload:", payload); // Debug payload
 
       const response = await fetch("http://localhost:8000/auth/login", {
@@ -25,13 +25,13 @@ function Login() {
 
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("access_token", data.access_token); // Updated key to "access_token"
+        console.log("Stored token:", data.access_token); // Debug log
         navigate("/dashboard"); // Redirect to Dashboard.tsx
       } else {
-        // Handle FastAPI error (422 or 400)
         const errorMessage = Array.isArray(data.detail)
-          ? data.detail.map((err: any) => err.msg).join(", ") // Validation errors
-          : data.detail || "Login failed"; // Invalid credentials or generic error
+          ? data.detail.map((err: any) => err.msg).join(", ")
+          : data.detail || "Login failed";
         setError(errorMessage);
       }
     } catch (err) {
@@ -65,14 +65,14 @@ function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label> {/* Changed to Email */}
+              <label className="block text-sm font-medium mb-2">Email</label>
               <div className="relative">
-                <Mail // Changed User icon to Mail for email
+                <Mail
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={20}
                 />
                 <input
-                  type="email" // Changed to email type for better validation
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
