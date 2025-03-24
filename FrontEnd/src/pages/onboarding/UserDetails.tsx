@@ -65,7 +65,7 @@ export default function UserDetails() {
                 value={formData.fullName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
                 className="w-full bg-dark-lighter text-white pl-12 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter your full name"
+                placeholder="Same as Username"
                 required
               />
             </div>
