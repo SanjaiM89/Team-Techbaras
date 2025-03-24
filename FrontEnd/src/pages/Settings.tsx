@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Bell, Crown, MessageSquare, LogOut, Star,
-  ThumbsUp, AlertCircle, Camera, Edit2, Save, X,
+  ThumbsUp, AlertCircle, Edit2, Save, X,
   Brain, Video, Calendar, Lock, Zap, Gift
 } from 'lucide-react';
+import axios from 'axios';
 
 function Settings() {
   const navigate = useNavigate();
@@ -15,10 +16,10 @@ function Settings() {
   const [feedback, setFeedback] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState({
-    name: 'sanjai',
-    email: 'sanjai@gmail.com',
-    height: '195',
-    weight: '95',
+    name: '',
+    email: '',
+    height: '',
+    weight: '',
     goals: ['Weight Loss', 'Muscle Gain'],
     notifications: {
       workouts: true,
@@ -27,6 +28,32 @@ function Settings() {
       tips: false
     }
   });
+  const [token] = useState(localStorage.getItem('token') || '');
+
+  const api = axios.create({
+    baseURL: 'http://localhost:8000/api',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  // Fetch initial profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/settings/profile');
+        setProfile(prev => ({
+          ...prev,
+          name: response.data.name,
+          email: response.data.email,
+          height: String(response.data.height),
+          weight: String(response.data.weight)
+        }));
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        navigate('/login');
+      }
+    };
+    if (token) fetchProfile();
+  }, [token, navigate]);
 
   const premiumFeatures = [
     {
@@ -67,11 +94,28 @@ function Settings() {
     }
   ];
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveSection(null);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await api.put('/settings/profile', {
+        name: profile.name,
+        email: profile.email,
+        height: parseFloat(profile.height),
+        weight: parseFloat(profile.weight)
+      });
+      console.log('Profile update response:', response.data);
+      setActiveSection(null);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile');
+    }
   };
 
   const handleNotificationUpdate = (key: keyof typeof profile.notifications) => {
@@ -84,19 +128,43 @@ function Settings() {
     }));
   };
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveSection(null);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    if (rating < 1 || rating > 5) {
+      alert('Please select a rating between 1 and 5 stars');
+      return;
+    }
+
+    try {
+      const response = await api.post('/settings/feedback', {
+        feedback_type: feedbackType,
+        rating: rating,
+        feedback_given: feedback
+      });
+      console.log('Feedback response:', response.data);
+      setFeedback('');
+      setRating(0);
+      setFeedbackType('general');
+      setActiveSection(null);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      alert('Failed to submit feedback');
+    }
   };
 
   const handleSubscribe = async () => {
-    // In a real app, this would integrate with Stripe
     console.log('Initiating subscription process');
   };
 
   const handleSignOut = () => {
+    localStorage.removeItem('token');
     navigate('/login');
   };
 
