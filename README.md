@@ -29,7 +29,8 @@ Welcome to the Team-Techbaras project! This repository contains both the backend
 
 2. **Create Python Virtual Environment**
    ```bash
-   python -m venv venv
+   python -m venv venv #(NOT RECOMMENDED)
+   python3.10 -m venv venv #(RECOMMENDED)
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
