@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Heart, ChevronLeft, Play, Timer as TimerIcon, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, ChevronLeft, Play, Timer as TimerIcon, Trophy, CheckCircle, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WorkoutChatbot from '../../components/WorkoutChatbot';
 import WorkoutTimer from '../../components/workout/Timer';
@@ -10,8 +10,7 @@ import WorkoutCustomizer from '../../components/workout/WorkoutCustomizer';
 
 function CardioWorkout() {
   const [selectedWorkout, setSelectedWorkout] = useState(0);
-
-  const workouts = [
+  const [workouts, setWorkouts] = useState([
     {
       name: "HIIT Running",
       duration: 20,
@@ -26,7 +25,8 @@ function CardioWorkout() {
       progress: {
         speeds: [8.5, 9.0, 9.2, 9.5, 9.8, 10.0],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     },
     {
       name: "Endurance Run",
@@ -40,7 +40,8 @@ function CardioWorkout() {
       progress: {
         speeds: [6.0, 6.2, 6.5, 6.8, 7.0, 7.2],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     },
     {
       name: "Hill Sprints",
@@ -56,9 +57,12 @@ function CardioWorkout() {
       progress: {
         speeds: [7.0, 7.5, 8.0, 8.2, 8.5, 8.8],
         dates: ['Mon', 'Wed', 'Fri', 'Mon', 'Wed', 'Fri']
-      }
+      },
+      completed: false // Added completed field
     }
-  ];
+  ]);
+  const [showCompletionModal, setShowCompletionModal] = useState(false); // State for success modal
+  const [xpEarned, setXpEarned] = useState<number>(0); // State for XP earned
 
   const handleCustomization = (options: any) => {
     console.log('Updated workout settings:', options);
@@ -66,6 +70,27 @@ function CardioWorkout() {
 
   const handleTimerComplete = () => {
     console.log('Interval completed!');
+  };
+
+  const handleCompleteWorkout = (index: number) => {
+    const updatedWorkouts = [...workouts];
+    if (!updatedWorkouts[index].completed) {
+      updatedWorkouts[index].completed = true;
+      setWorkouts(updatedWorkouts);
+      setXpEarned(updatedWorkouts[index].xp); // Set XP for the modal
+      setShowCompletionModal(true);
+      setTimeout(() => setShowCompletionModal(false), 3000); // Hide modal after 3 seconds
+    }
+  };
+
+  const handleDeleteWorkout = (index: number) => {
+    const updatedWorkouts = workouts.filter((_, i) => i !== index);
+    setWorkouts(updatedWorkouts);
+    if (selectedWorkout === index) {
+      setSelectedWorkout(0); // Reset to first workout if deleted one was selected
+    } else if (selectedWorkout > index) {
+      setSelectedWorkout(selectedWorkout - 1); // Adjust index if deleted workout was before selected
+    }
   };
 
   return (
@@ -154,22 +179,60 @@ function CardioWorkout() {
                 index === selectedWorkout ? 'bg-dark-lighter border-primary' : 'bg-dark-light'
               } border-2 rounded-xl p-4 flex items-center justify-between`}
             >
-              <div className="flex items-center">
+              <div className="flex items-center flex-1">
                 <Heart className={`${
                   index === selectedWorkout ? 'text-red-500' : 'text-gray-400'
                 } mr-3`} />
-                <div className="text-left">
+                <div className="text-left flex-1">
                   <h3 className="font-semibold">{workout.name}</h3>
                   <p className="text-sm text-gray-400">{workout.duration} mins • {workout.intensity} Intensity</p>
                 </div>
               </div>
-              <span className="text-primary">+{workout.xp} XP</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-primary">+{workout.xp} XP</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent selecting the workout when completing
+                    handleCompleteWorkout(index);
+                  }}
+                  className={`p-1 ${workout.completed ? "text-green-500 cursor-not-allowed" : "text-gray-400 hover:text-green-500"}`}
+                  disabled={workout.completed}
+                >
+                  <CheckCircle size={20} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent selecting the workout when deleting
+                    handleDeleteWorkout(index);
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-500"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
             </button>
           ))}
         </div>
       </section>
 
       <WorkoutChatbot />
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showCompletionModal && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-dark px-6 py-3 rounded-lg shadow-lg"
+          >
+            <div className="flex items-center">
+              <Trophy className="mr-2" />
+              <p className="font-semibold">Great job! +{xpEarned} XP earned!</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

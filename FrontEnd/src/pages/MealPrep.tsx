@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Apple, Coffee, Pizza, MessageSquare, X, Trophy, Calendar, Edit2, Save, Plus, Check, RefreshCw } from "lucide-react";
+import { Apple, Coffee, Pizza, X, Trophy, Edit2, Save, Plus, Check, RefreshCw, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -20,11 +20,9 @@ type DayPlan = {
 };
 
 function MealPrep() {
-  const [showChatbot, setShowChatbot] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
-  const [message, setMessage] = useState('');
   const [selectedDay, setSelectedDay] = useState(0);
   const [editingMeal, setEditingMeal] = useState<{ day: number; meal: keyof DayPlan } | null>(null);
   const [preferences, setPreferences] = useState({
@@ -33,8 +31,11 @@ function MealPrep() {
     restrictions: [] as string[],
   });
   const [weeklyMeals, setWeeklyMeals] = useState<DayPlan[]>([]);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [error, setError] = useState<string | null>(null); // Add error state
+  const [loading, setLoading] = useState(true);
+  const [generateLoading, setGenerateLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userXp, setUserXp] = useState<number>(0);
+  const [xpEarned, setXpEarned] = useState<number>(50);
 
   const [newMeal, setNewMeal] = useState<Meal>({
     name: '',
@@ -48,15 +49,15 @@ function MealPrep() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const api = axios.create({
-    baseURL: "http://localhost:8000/api", // Adjust based on your backend URL
+    baseURL: "http://localhost:8000/api",
   });
 
-  // Fetch meal plans on mount
+  // Fetch meal plans and user XP on mount
   useEffect(() => {
-    const fetchMealPlans = async () => {
+    const fetchData = async () => {
       if (!token) {
         navigate("/login");
         return;
@@ -64,15 +65,20 @@ function MealPrep() {
 
       setLoading(true);
       try {
-        const response = await api.get("/mealplans", {
+        const mealResponse = await api.get("/mealplans", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Fetched meal plans:", response.data); // Debug log
-        setWeeklyMeals(response.data || []); // Ensure it’s not undefined
+        setWeeklyMeals(mealResponse.data || []);
+
+        const userResponse = await api.get("/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserXp(userResponse.data.xp || 0);
+
         setError(null);
       } catch (error) {
-        console.error("Error fetching meal plans:", error);
-        setError("Failed to load meal plans. Please try again.");
+        console.error("Error fetching data:", error);
+        setError("Failed to load data. Please try again.");
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           localStorage.removeItem("token");
           navigate("/login");
@@ -82,7 +88,7 @@ function MealPrep() {
       }
     };
 
-    fetchMealPlans();
+    fetchData();
   }, [token, navigate]);
 
   const handleAddMeal = async (e: React.FormEvent) => {
@@ -128,15 +134,43 @@ function MealPrep() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      const mealResponse = await api.get("/mealplans", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWeeklyMeals(mealResponse.data);
+
+      const userResponse = await api.get("/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserXp(userResponse.data.xp || 0);
+
+      setShowCompletionModal(true);
+      setTimeout(() => setShowCompletionModal(false), 3000);
+    } catch (error) {
+      console.error("Error completing meal:", error);
+      setError("Failed to complete meal.");
+    }
+  };
+
+  const handleMealDelete = async (dayIndex: number, meal: keyof DayPlan, mealIndex: number) => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await api.delete(`/mealplans/${dayIndex}/${meal}/${mealIndex}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       const response = await api.get("/mealplans", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWeeklyMeals(response.data);
-      setShowCompletionModal(true);
-      setTimeout(() => setShowCompletionModal(false), 3000);
+      setError(null);
     } catch (error) {
-      console.error("Error updating meal:", error);
-      setError("Failed to complete meal.");
+      console.error("Error deleting meal:", error);
+      setError("Failed to delete meal.");
     }
   };
 
@@ -171,23 +205,27 @@ function MealPrep() {
       navigate("/login");
       return;
     }
-
+  
+    setGenerateLoading(true);
     try {
-      await api.post("/mealplans/generate", {}, {
+      await api.post(`/mealplans/generate/${selectedDay}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  
       const response = await api.get("/mealplans", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWeeklyMeals(response.data);
+      setError(null);
     } catch (error) {
       console.error("Error generating meal plan:", error);
       setError("Failed to generate meal plan.");
+    } finally {
+      setGenerateLoading(false);
     }
   };
 
-  const MealCard = ({ meal, onComplete, onEdit, index }: { meal: Meal; onComplete: () => void; onEdit: () => void; index: number }) => (
+  const MealCard = ({ meal, onComplete, onEdit, onDelete, index }: { meal: Meal; onComplete: () => void; onEdit: () => void; onDelete: () => void; index: number }) => (
     <div className="bg-dark-lighter rounded-lg p-4 mb-3">
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-semibold">{meal.name}</h4>
@@ -195,9 +233,13 @@ function MealPrep() {
           <button onClick={onEdit} className="text-primary hover:text-primary-dark">
             <Edit2 size={18} />
           </button>
+          <button onClick={onDelete} className="text-red-500 hover:text-red-700">
+            <Trash2 size={18} />
+          </button>
           <button
             onClick={onComplete}
             className={`${meal.completed ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
+            disabled={meal.completed}
           >
             <Check size={18} />
           </button>
@@ -233,7 +275,7 @@ function MealPrep() {
     >
       <header className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Meal Planning</h1>
-        <p className="text-gray-400">Your personalized nutrition guide</p>
+        <p className="text-gray-400">Your personalized nutrition guide • Total XP: {userXp}</p>
       </header>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -243,10 +285,11 @@ function MealPrep() {
           <h2 className="text-xl font-bold">Weekly Timeline</h2>
           <button
             onClick={generateNewMealPlan}
-            className="flex items-center bg-primary text-dark px-4 py-2 rounded-lg font-semibold"
+            disabled={generateLoading}
+            className={`flex items-center bg-primary text-dark px-4 py-2 rounded-lg font-semibold ${generateLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <RefreshCw size={18} className="mr-2" />
-            Generate New Plan
+            <RefreshCw size={18} className={`mr-2 ${generateLoading ? 'animate-spin' : ''}`} />
+            {generateLoading ? "Generating..." : "Generate New Plan"}
           </button>
         </div>
 
@@ -295,13 +338,14 @@ function MealPrep() {
                     <Plus size={18} className="text-primary" />
                   </button>
                 </div>
-                {weeklyMeals[selectedDay].breakfast.map((meal, index) => (
+                {weeklyMeals[selectedDay]?.breakfast.map((meal, index) => (
                   <MealCard
                     key={index}
                     meal={meal}
                     index={index}
                     onComplete={() => handleMealComplete(selectedDay, 'breakfast', index)}
                     onEdit={() => handleMealEdit(selectedDay, 'breakfast', index)}
+                    onDelete={() => handleMealDelete(selectedDay, 'breakfast', index)}
                   />
                 ))}
               </div>
@@ -322,13 +366,14 @@ function MealPrep() {
                     <Plus size={18} className="text-primary" />
                   </button>
                 </div>
-                {weeklyMeals[selectedDay].lunch.map((meal, index) => (
+                {weeklyMeals[selectedDay]?.lunch.map((meal, index) => (
                   <MealCard
                     key={index}
                     meal={meal}
                     index={index}
                     onComplete={() => handleMealComplete(selectedDay, 'lunch', index)}
                     onEdit={() => handleMealEdit(selectedDay, 'lunch', index)}
+                    onDelete={() => handleMealDelete(selectedDay, 'lunch', index)}
                   />
                 ))}
               </div>
@@ -349,20 +394,21 @@ function MealPrep() {
                     <Plus size={18} className="text-primary" />
                   </button>
                 </div>
-                {weeklyMeals[selectedDay].dinner.map((meal, index) => (
+                {weeklyMeals[selectedDay]?.dinner.map((meal, index) => (
                   <MealCard
                     key={index}
                     meal={meal}
                     index={index}
                     onComplete={() => handleMealComplete(selectedDay, 'dinner', index)}
                     onEdit={() => handleMealEdit(selectedDay, 'dinner', index)}
+                    onDelete={() => handleMealDelete(selectedDay, 'dinner', index)}
                   />
                 ))}
               </div>
             </div>
           </div>
         ) : (
-          <p className="text-gray-400">No meal plans available.</p>
+          <p className="text-gray-400">No meal plans available. Generate a new plan to get started!</p>
         )}
       </section>
 
@@ -379,17 +425,17 @@ function MealPrep() {
               <p className="text-xl font-bold text-primary">{preferences.protein}g</p>
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Meals Completed</p>
+              <p className="text-gray-400 text-sm">=KMeals Completed</p>
               <p className="text-xl font-bold text-green-500">
                 {weeklyMeals.length > 0
-                  ? weeklyMeals[selectedDay].breakfast.filter(m => m.completed).length +
-                    weeklyMeals[selectedDay].lunch.filter(m => m.completed).length +
-                    weeklyMeals[selectedDay].dinner.filter(m => m.completed).length
+                  ? weeklyMeals[selectedDay]?.breakfast.filter(m => m.completed).length +
+                    weeklyMeals[selectedDay]?.lunch.filter(m => m.completed).length +
+                    weeklyMeals[selectedDay]?.dinner.filter(m => m.completed).length
                   : 0}/
                 {weeklyMeals.length > 0
-                  ? weeklyMeals[selectedDay].breakfast.length +
-                    weeklyMeals[selectedDay].lunch.length +
-                    weeklyMeals[selectedDay].dinner.length
+                  ? weeklyMeals[selectedDay]?.breakfast.length +
+                    weeklyMeals[selectedDay]?.lunch.length +
+                    weeklyMeals[selectedDay]?.dinner.length
                   : 0}
               </p>
             </div>
@@ -493,7 +539,7 @@ function MealPrep() {
           >
             <div className="flex items-center">
               <Trophy className="mr-2" />
-              <p className="font-semibold">Great job! +50 XP earned!</p>
+              <p className="font-semibold">Great job! +{xpEarned} XP earned! Total XP: {userXp}</p>
             </div>
           </motion.div>
         )}
