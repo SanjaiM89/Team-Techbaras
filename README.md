@@ -7,12 +7,8 @@ This repository contains both the **backend** and **frontend** code for a fitnes
 
 ## **Deployed & Running**  
 
-**Live Version:** [Click Here](http://15.235.185.102:5173)  
+**Live Version:** - http://15.235.185.102:5173
 
-> **Access the hosted application at:**  
-> [http://15.235.185.102:5173](http://15.235.185.102:5173)  
-
----
 
 ## **⚡ Optimized for Mobile View**  
 
