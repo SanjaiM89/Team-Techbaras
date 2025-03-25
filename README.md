@@ -5,10 +5,6 @@ This repository contains both the **backend** and **frontend** code for a fitnes
 
 ---
 
-## **Deployed & Running**  
-
-**Live Version:** - http://15.235.185.102:5173
-
 
 ## **⚡ Optimized for Mobile View**  
 
@@ -117,4 +113,3 @@ This project is licensed under the **MIT License**. See `LICENSE` for details.
 
 ---
 
-**The application is now live. Click the link above to explore the deployed version.**  
